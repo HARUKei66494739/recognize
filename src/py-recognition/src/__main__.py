@@ -134,6 +134,7 @@ def __whiper_help(s:str) -> str:
 
 @click.option("--torch_cache", default="", help="torchがダウンロードするキャッシュの場所を指定します", type=str)
 @click.option("--feature", default="", help="-", type=str)
+@click.option("--ftr_transcribe_file", default="", help="-", type=str)
 def main(
     test:str,
     method:str,
@@ -190,7 +191,8 @@ def main(
     record_directory:Optional[str],
 
     torch_cache:str,
-    feature:str
+    feature:str,
+    ftr_transcribe_file:str
     ) -> None:
     from src import ilm_logger, ilm_enviroment, enable_virtual_terminal
 
@@ -431,20 +433,30 @@ def main(
                 f"変換フィルタ: {str(jsn)}",
             ])
 
-            ilm_logger.print("認識中…")
-            assert(isinstance(recognition_model, recognition.RecognitionModel))
-            main_run.run(
-                mc,
-                recognition_model,
-                translate_model,
-                filter_transcribe,
-                outputer,
-                subtitle_,
-                rec,
-                ilm_enviroment,
-                cancel,
-                ilm_logger,
-                feature)
+            if feature == "transcribe":
+                import src.feature_transcribe
+                assert(isinstance(recognition_model, recognition.RecognitionModel))
+                src.feature_transcribe.run(
+                    ftr_transcribe_file,
+                    recognition_model,
+                    ilm_enviroment,
+                    ilm_logger,
+                    feature)
+            else:
+                ilm_logger.print("認識中…")
+                assert(isinstance(recognition_model, recognition.RecognitionModel))
+                main_run.run(
+                    mc,
+                    recognition_model,
+                    translate_model,
+                    filter_transcribe,
+                    outputer,
+                    subtitle_,
+                    rec,
+                    ilm_enviroment,
+                    cancel,
+                    ilm_logger,
+                    feature)
     #except src.mic.MicInitializeExeception as e:
     #    ilm_logger.print(e.message)
     #    ilm_logger.print(f"{type(e.inner)}{e.inner}")
