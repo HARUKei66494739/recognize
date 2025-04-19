@@ -4,13 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [[source]]
-# url = "https://download.pytorch.org/whl/cu118"
-url = "https://download.pytorch.org/whl/cu121"
+url = "https://download.pytorch.org/whl/test/cu128"
 verify_ssl = true
 name = "pytorch"
 
 [packages]
-torch = {version = "*", index = "pytorch"}
+torch = {version = "2.7.0", index = "pytorch"}
 torchvision = {version = "*", index = "pytorch"}
 torchaudio = {version = "*", index = "pytorch"}
 click = "*"
@@ -32,8 +31,8 @@ stable-ts = "2.16.0"
 obs-websocket-py = "*"
 
 [dev-packages]
-pyinstaller = "==6.9.0"
-pyinstaller-hooks-contrib = "==2024.7"
+pyinstaller = "==6.13.0"
+pyinstaller-hooks-contrib = "==2025.3"
 nuitka = "*"
 #[requires]
 #python_version = "3.10"

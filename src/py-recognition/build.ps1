@@ -19,60 +19,11 @@ if(-not($env:RECOGNIZE_WITHOUT_TORCH)) {
 $global:progressPreference = 'silentlyContinue'
 
 
-echo pythonのインストール確認
-Get-Command pip3 > $null
-if (-not($?)) {
-    echo pipが見つからないのでpythonのインストールを行います
-    winget install python3.11 --accept-source-agreements --accept-package-agreements --silent
-    if($LASTEXITCODE -ne 0) {
-        echo インストールが失敗またはキャンセルされました
-        exit 1
-    }
-
-
-    echo 環境変数を再読み込みします
-    $RegenerateUserEnvironment = Add-Type 'A' -PassThru -MemberDefinition '
-    [DllImport("shell32.dll")]
-    public static extern bool RegenerateUserEnvironment(ref IntPtr a, bool b);
-    '
-    $a = [System.IntPtr]::Zero
-    $null = $RegenerateUserEnvironment::RegenerateUserEnvironment([ref]$a, $True)
-}
-echo ok
-echo ""
-
-echo pythonのバージョン確認
-$py_v = python -V | ConvertFrom-String -Delimiter '[\s\.]+'
-# python 3.10.x以上を要求
-if(($py_v.P2 -ne 3) -or (($py_v.P2 -eq 3) -and ($py_v.P3 -lt 10))) {
-    echo エラー
-    echo インストールされているpythonはサポートされていません
-    python -V
-    Get-Command python | Select-Object Source | Format-Table -AutoSize -Wrap
-    exit 1
-}
-echo ok
-echo ""
-
-
-#echo gitのインストール確認
-#Get-Command git > $null
-#if(-not($?)) {
-#    echo gitが見つからないのでgitのインストールを行います
-#    winget install git.git
-#    if($LASTEXITCODE -ne 0) {
-#        echo インストールが失敗またはキャンセルされました
-#        exit 1
-#    }
-#}
-#echo ok
-#echo ""
-
 echo 作業ディレクトリの準備を行います
 If (Test-Path .\.build) {
     echo 古い作業ディレクトリを削除します
     Remove-Item -path .\.build -recurse
-    if($LASTEXITCODE -ne 0) {
+    if( -not $? ) {
         echo 古い作業ディレクトリの削除に失敗しました
         exit 1
     }
@@ -81,12 +32,12 @@ If (Test-Path .\.build) {
 }
 
 mkdir .build
-if($LASTEXITCODE -ne 0) {
+if( -not $? ) {
     echo 作業ディレクトリの作成に失敗しました
     exit 1
 }
 Copy-Item -Path .\src -Destination .\.build.\src -Recurse
-if($LASTEXITCODE -ne 0) {
+if( -not $? ) {
     echo ソースコードの複製に失敗しました
     exit 1
 }
@@ -105,20 +56,6 @@ if($LASTEXITCODE -ne 0) {
 echo ok
 echo ""
 
-echo webrtcvadのインストールを試行します
-pip install webrtcvad --no-cache-dir 
-if($LASTEXITCODE -ne 0) {
-    echo インストールに失敗しました
-    echo C++ビルド環境をインストールします
-    winget install Microsoft.VisualStudio.2022.BuildTools --accept-source-agreements --accept-package-agreements --silent --override "--wait --quiet --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-    if($LASTEXITCODE -ne 0) {
-        echo インストールが失敗またはキャンセルされました
-        popd
-        exit 1
-    }
-}
-echo ok
-echo ""
 
 echo python依存関係を復元します
 pip install -r ../$REQUIREMENTS_FILE --no-cache-dir
@@ -140,7 +77,7 @@ echo ブートローダーを差し替えます
 #  Remove-Item -Path ..\bootloader\bootloader.zip -Stream Zone.Identifier
 #}
 Expand-Archive -Path ..\bootloader\bootloader.zip -DestinationPath .\.venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel -Force
-if($LASTEXITCODE -ne 0) {
+if( -not $? ) {
     echo ブートローダーを差し替えに失敗しました
     popd
     exit 1
@@ -162,7 +99,7 @@ echo ""
 
 echo mm-interopを配置します
 copy ..\c\mm-interop.dll .\dist\recognize\
-if($LASTEXITCODE -ne 0) {
+if( -not $? ) {
     echo mm-interopの配置に失敗しました
     popd
     exit 1
@@ -188,20 +125,20 @@ echo アーカイブを移動します
 If (Test-Path .\dist) {
     echo 既存のアーカイブを削除します
     Remove-Item -path .\dist -recurse
-    if($LASTEXITCODE -ne 0) {
+    if( -not $? ) {
         echo 既存のアーカイブの削除に失敗しました
         exit 1
     }
 }
 move .build\dist .
-if($LASTEXITCODE -ne 0) {
+if( -not $? ) {
     echo アーカイブの移動に失敗しました
     exit 1
 }
 
 echo 作業ディレクトリを削除します
 Remove-Item  -path .build -recurse
-if($LASTEXITCODE -ne 0) {
+if( -not $? ) {
     echo 作業ディレクトリの削除に失敗しました
     exit 1
 }
