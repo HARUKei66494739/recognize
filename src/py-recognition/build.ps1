@@ -142,17 +142,4 @@ $cd = Get-Location
 echo ""
 echo "ビルドされたexeの場所："
 echo "$cd\dist\recognize"
-exit 0ld -recurse
-if( -not $? ) {
-    echo 作業ディレクトリの削除に失敗しました
-    exit 1
-}
-
-echo 正常に終了しました
-echo ""
-
-$cd = Get-Location
-echo ""
-echo "ビルドされたexeの場所："
-echo "$cd\dist\recognize"
 exit 0

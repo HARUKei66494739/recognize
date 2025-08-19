@@ -10,6 +10,9 @@ public record class RecognitionObject {
 #pragma warning disable CS8618
 	[JsonProperty("transcript", Required = Required.Always)]
 	public string Transcript { get; init; }
+
+	[JsonProperty("translate", Required = Required.Always)]
+	public string Translate { get; init; }
 #pragma warning restore
 
 	[JsonProperty("finish", Required = Required.Always)]

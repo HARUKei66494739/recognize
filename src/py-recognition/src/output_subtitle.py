@@ -29,8 +29,9 @@ class SubtitleOutputer(RecognitionOutputer):
         t.setDaemon(True)
         t.start()
 
-    def output(self, text_ja:str, text_en:str) -> None:
+    def output(self, text_ja:str, text_en:str) -> str:
         self.__prv_time = time.time()
+        return text_ja
 
 
 class NopSubtitleOutputer(SubtitleOutputer):
@@ -58,7 +59,7 @@ class FileSubtitleOutputer(SubtitleOutputer):
             encoding="UTF-8",
             newline="")
 
-    def output(self, text_ja:str, text_en:str) -> None:
+    def output(self, text_ja:str, text_en:str) -> str:
         self.__io_ja.seek(0)
         self.__io_en.seek(0)
         self.__io_ja.truncate(0)
@@ -67,7 +68,7 @@ class FileSubtitleOutputer(SubtitleOutputer):
         self.__io_en.write(text_en)
         self.__io_ja.flush()
         self.__io_en.flush()
-        super().output(text_ja, text_en)
+        return super().output(text_ja, text_en)
 
 
 
@@ -96,7 +97,7 @@ class ObsV5SubtitleOutputer(SubtitleOutputer):
             self.__port,
             self.__password)
 
-    def output(self, text_ja:str, text_en:str) -> None:
+    def output(self, text_ja:str, text_en:str) -> str:
         if self.__obs is None:
             self.__try_connect(
                 self.__host,
@@ -122,7 +123,7 @@ class ObsV5SubtitleOutputer(SubtitleOutputer):
             except websocket._exceptions.WebSocketConnectionClosedException:
                 self.__obs = None
                 self._logger.error("OBSとの接続が閉じられました")
-        super().output(text_ja, text_en)
+        return super().output(text_ja, text_en)
 
     def __try_connect(self, host, port, password) -> bool:
         try:

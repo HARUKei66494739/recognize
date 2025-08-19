@@ -45,7 +45,7 @@ class Program {
 			cancellationSource = new CancellationTokenSource();
 
 			// ウェブソケット
-			wsSubscriber = Observable.Create<Models.RecognitionObject>(oo => {
+			wsSubscriber = Observable.Create<(Models.RecognitionObject Json, IWebSocketConnection Socket)>(oo => {
 				try {
 					using var server = new WebSocketServer($"ws://127.0.0.1:{this.opt.Port}");
 
@@ -61,12 +61,12 @@ class Program {
 								} else {
 									var json = Newtonsoft.Json.JsonConvert.DeserializeObject<Models.RecognitionObject?>(message);
 									if (json != null) {
-										oo.OnNext(json);
+										oo.OnNext((json, socket));
 									}
 								}
 							}
 							catch (Exception e) {
-								Logger.Current.Info("WebSocketで予期しない例外");
+								Logger.Current.Info("WebSocket送信で予期しない例外");
 								Logger.Current.Info(e);
 							}
 						};
@@ -88,10 +88,38 @@ class Program {
 							new DispatcherSynchronizationContext());
 					}
 
-					if (string.IsNullOrWhiteSpace(x.Transcript)) {
+					if (string.IsNullOrWhiteSpace(x.Json.Transcript)) {
 						Logger.Current.Info($"読み上げは空文字列です。スキップします");
-					} else {
-						await RunVoiceRoid(x);
+						return;
+					}
+
+					try {
+						try {
+							_ = x.Socket.Send(Newtonsoft.Json.JsonConvert.SerializeObject(new Models.RecognitionObject() {
+								Transcript = x.Json.Transcript,
+								Translate = x.Json.Translate,
+								IsFinish = false,
+							}));
+						}
+						catch (Exception e) {
+							Logger.Current.Info("WebSocket返信で予期しない例外");
+							Logger.Current.Info(e);
+						}
+
+						await RunVoiceRoid(x.Json);
+					}
+					finally {
+						try {
+							_ = x.Socket.Send(Newtonsoft.Json.JsonConvert.SerializeObject(new Models.RecognitionObject() {
+								Transcript = x.Json.Transcript,
+								Translate = x.Json.Translate,
+								IsFinish = true,
+							}));
+						}
+						catch (Exception e) {
+							Logger.Current.Info("WebSocket返信で予期しない例外");
+							Logger.Current.Info(e);
+						}
 					}
 				});
 

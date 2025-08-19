@@ -255,7 +255,8 @@ def main(
                     out_illuminate_kana,
                     out_illuminate_notify_icon,
                     out_illuminate_debug,
-                    out_illuminate_capture_pause),
+                    out_illuminate_capture_pause,
+                    cancel),
                 ilm_logger,
                 feature)
 
@@ -426,7 +427,9 @@ def main(
                     }[translate]()
                 ilm_logger.debug(f"#翻訳モデルは{type(translate_model)}を使用", reset_console=True)
 
+            ilm_logger.print("出力モデルの初期化")
             outputers:list[output.RecognitionOutputer] = []
+            illuminate:output.IlluminateSpeechOutputer|None = None
             outputer_map = {
                 #val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
                 val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(
@@ -443,7 +446,8 @@ def main(
                     out_illuminate_notify_icon,
                     out_illuminate_kana,
                     out_illuminate_debug,
-                    out_illuminate_capture_pause),
+                    out_illuminate_capture_pause,
+                    cancel),
                 val.OUT_VALUE_OBS: lambda: output_subtitle.ObsV5SubtitleOutputer(
                     out_obs_host,
                     out_obs_port,
@@ -461,8 +465,25 @@ def main(
             outputers.append(output.PrintOutputer())
             for it in out:
                 if it in outputer_map:
-                    outputers.append(outputer_map[it]())
-            ilm_logger.debug(f"#出力は{','.join(list(map(lambda x: f'{type(x)}', outputers)))}を使用", reset_console=True)
+                    o = outputer_map[it]()
+                    outputers.append(o)
+                    if isinstance(o, output.IlluminateSpeechOutputer):
+                        illuminate = o
+            if illuminate != None:
+                ilm_logger.print("illuminate同期の設定")
+
+                sbtl:list[output.RecognitionOutputer] = []
+                for it in outputers:
+                    if isinstance(it, output_subtitle.SubtitleOutputer):
+                        sbtl.append(it)
+                if 0 < len(sbtl):
+                    for it in sbtl:
+                        outputers.remove(it)
+                    illuminate.set_subtitle_cooperation(sbtl)
+                ilm_logger.debug(f"#出力は{','.join(list(map(lambda x: f'{type(x)}', outputers)))}を使用", reset_console=True)
+                ilm_logger.debug(f"#illuminate同期は{','.join(list(map(lambda x: f'{type(x)}', sbtl)))}を使用", reset_console=True)
+            else:
+                ilm_logger.debug(f"#出力は{','.join(list(map(lambda x: f'{type(x)}', outputers)))}を使用", reset_console=True)
 
             ilm_logger.debug(f"#使用音声フィルタ({len(filters)}):", reset_console=True)
             for f in filters:
