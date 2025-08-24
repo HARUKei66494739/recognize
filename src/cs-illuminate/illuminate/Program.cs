@@ -66,7 +66,7 @@ class Program {
 								}
 							}
 							catch (Exception e) {
-								Logger.Current.Info("WebSocket送信で予期しない例外");
+								Logger.Current.Info("！！WebSocket送信で予期しない例外");
 								Logger.Current.Info(e);
 							}
 						};
@@ -95,14 +95,16 @@ class Program {
 
 					try {
 						try {
-							_ = x.Socket.Send(Newtonsoft.Json.JsonConvert.SerializeObject(new Models.RecognitionObject() {
+							var message = Newtonsoft.Json.JsonConvert.SerializeObject(new Models.RecognitionObject() {
 								Transcript = x.Json.Transcript,
 								Translate = x.Json.Translate,
 								IsFinish = false,
-							}));
+							});
+							_ = x.Socket.Send(message);
+							Logger.Current.Info($"メッセージ送信=>{message}");
 						}
 						catch (Exception e) {
-							Logger.Current.Info("WebSocket返信で予期しない例外");
+							Logger.Current.Info("！！WebSocket送信で予期しない例外");
 							Logger.Current.Info(e);
 						}
 
@@ -110,14 +112,16 @@ class Program {
 					}
 					finally {
 						try {
-							_ = x.Socket.Send(Newtonsoft.Json.JsonConvert.SerializeObject(new Models.RecognitionObject() {
+							var message = Newtonsoft.Json.JsonConvert.SerializeObject(new Models.RecognitionObject() {
 								Transcript = x.Json.Transcript,
 								Translate = x.Json.Translate,
 								IsFinish = true,
-							}));
+							});
+							_ = x.Socket.Send(message);
+							Logger.Current.Info($"メッセージ送信=>{message}");
 						}
 						catch (Exception e) {
-							Logger.Current.Info("WebSocket返信で予期しない例外");
+							Logger.Current.Info("！！WebSocket送信で予期しない例外");
 							Logger.Current.Info(e);
 						}
 					}

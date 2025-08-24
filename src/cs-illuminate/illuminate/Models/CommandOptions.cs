@@ -47,6 +47,9 @@ class CommandOptions {
 	public bool NotifyIcon { get; set; } = false;
 	[Option("debug", Required = false, HelpText = "-")]
 	public bool Debug { get; set; } = false;
+
+	[Option("capture_silence", Required = false, HelpText = "-")]
+	public float CaptureSilenceSec { get; set; } = 1.0f;
 	[Option("capture_pause", Required = false, HelpText = "-")]
 	public float CapturePauseSec { get; set; } = 1.0f;
 
@@ -173,4 +176,10 @@ class CommandOptions {
 		return ret.AsReadOnly();
 	}
 
+	public AudioCaptureParam GetCaptureParam()
+		=> new(
+			SilenceSec: this.CaptureSilenceSec,
+			PauseSec: this.CapturePauseSec);
 }
+
+record struct AudioCaptureParam(double SilenceSec, double PauseSec);

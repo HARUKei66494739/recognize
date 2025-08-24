@@ -51,7 +51,7 @@ internal class AudioCaptureWait : IVoiceWaitable {
 		ApplicationCapture.UiInitilize();
 		return Task.Run(async () => {
 			// UIが止まるのでスレッドを起動する
-			this.capture = await ApplicationCapture.Get(this.targetProcess, this.opt.CapturePauseSec);
+			this.capture = await ApplicationCapture.Get(this.targetProcess, this.opt.GetCaptureParam());
 		});
 	}
 
@@ -61,7 +61,7 @@ internal class AudioCaptureWait : IVoiceWaitable {
 
 			Logger.Current.Info($"！！合成音声クライアントの再起動が確認されました");
 			this.targetProcess = this.voiceClient.ClientParameter.ProcessId;
-			this.capture = await ApplicationCapture.Get(this.targetProcess, this.opt.CapturePauseSec);
+			this.capture = await ApplicationCapture.Get(this.targetProcess, this.opt.GetCaptureParam());
 		}
 		return this.capture != null;
 	}
