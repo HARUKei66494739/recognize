@@ -9,7 +9,7 @@ next: false
 ## ビルド環境
 |種別|バージョン|
 |----|----|
-|OS|Windows 10/11 x64|
+|OS|Windows 11|
 |python|3.10,3.11,3.12|
 |そのほか|Visual C++コンパイラ<br>.NET SDK v8|
 
