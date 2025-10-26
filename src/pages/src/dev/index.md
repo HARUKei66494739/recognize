@@ -10,8 +10,8 @@ next: false
 |種別|バージョン|
 |----|----|
 |OS|Windows 11|
-|python|3.10,3.11,3.12|
-|そのほか|Visual C++コンパイラ<br>.NET SDK v8|
+|python|3.11,3.12|
+|そのほか|.NET SDK v8|
 
 ## ビルド
 プロジェクトルートにあるbuild-all.batを実行するとビルドされます。
