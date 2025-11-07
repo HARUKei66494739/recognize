@@ -289,7 +289,8 @@ def main(
         # VADフィルタの準備
         filter_vad_inst:filter.VoiceActivityDetectorFilter = {
             val.VAD_VALUE_SILERO: lambda: filter.SileroVadFilter(
-                val.MIC_SAMPLE_RATE),
+                val.MIC_SAMPLE_RATE,
+                vad_silero_threshold),
             val.VAD_VALUE_YAMNET: lambda: filter.YAMNetVadFilter(
                 val.MIC_SAMPLE_RATE),
         }[vad]()

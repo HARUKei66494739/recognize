@@ -40,6 +40,8 @@ public class Config {
 	public int? HpfParamater { get; set; } = null;
 	[JsonProperty("vad")]
 	public string? Vad { get; set; } = null;
+	[JsonProperty("vad_silero_threshold")]
+	public float? VadSileroThreshold { get; set; } = null;
 
 	// ゆかりねっと連携
 	[JsonProperty("out:yukarinette")]
@@ -283,6 +285,7 @@ public class Config {
 		arg(opt, "--mic_db_threshold", this.MicrophoneThresholdDb);
 		arg(opt, "--mic_record_min_duration", this.MicrophoneRecordMinDuration);
 		arg(opt, "--vad", this.Vad);
+		arg(opt, "--vad_silero_threshold", this.VadSileroThreshold);
 		arg(opt, "--filter_hpf", this.HpfParamater);
 
 		opt.Append($"--out \"print\" "); // ないと本体が起動しないのでいったん付与する

@@ -85,9 +85,12 @@ class SileroVadFilter(VoiceActivityDetectorFilter):
 
     def __init__(   
         self,
-        sampling_rate:int):
+        sampling_rate:int,
+        threshold):
 
         self.__model = load_silero_vad()
+        self.__sampling_rate = sampling_rate
+        self.__threshold = threshold
 
     @property
     def mic_pause_duration(self) -> float:
@@ -103,7 +106,9 @@ class SileroVadFilter(VoiceActivityDetectorFilter):
         auido, _ = torchaudio.load(bytes_io)
         speech_timestamps = get_speech_timestamps(
             auido,
-            self.__model)
+            self.__model,
+            threshold=self.__threshold,
+            sampling_rate=self.__sampling_rate)
         return 0 < len(speech_timestamps)
     
 

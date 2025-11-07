@@ -13,13 +13,21 @@ using Reactive.Bindings;
 
 namespace Haru.Kei.Models;
 public class ConfigBinder : INotifyPropertyChanged {
+	delegate int cuInit(int flags);
+	delegate int cuDeviceGetCount(ref int count);
+
+	public class TranscribeItem(string name, bool enabled) {
+		public ReactivePropertySlim<string> Name { get; } = new(initialValue: name);
+		public ReactivePropertySlim<bool> Enabled { get; } = new(initialValue: enabled);
+	}
+
 	public event PropertyChangedEventHandler? PropertyChanged;
 
-	private readonly string[] TranscribeModels = {
-		"設定しない",
-		"AI音声認識",
-		"google音声認識",
-	};
+	private readonly (string Name, bool Enabled)[] TranscribeModels = [
+		("設定しない", true),
+		("AI音声認識", CanUsedCuda()),
+		("google音声認識", true),
+	];
 	public const int TranscribeIndexNull = 0;
 	public const int TranscribeIndexAi = 1;
 	public const int TranscribeIndexGoogle = 2;
@@ -71,7 +79,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public const int VadMethodIndexYAMNet = 2;
 
 	// モデル
-	public ReactiveCollection<string> TranscribeModelsBinder { get; }
+	public ReactiveCollection<TranscribeItem> TranscribeModelsBinder { get; }
 	public ReactivePropertySlim<int> TranscribeModeIndex { get; }
 	public ReactivePropertySlim<string> GoogleLanguageBinding { get; }
 	public ReactivePropertySlim<string> GoogleTimeoutBinding { get; set; }
@@ -79,6 +87,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ReactiveCollection<string> TranslateModelsBinder { get; set; }
 	public ReactivePropertySlim<int> TranslateModelIndex { get; }
 	public ReadOnlyReactivePropertySlim<Visibility> GoogleItemVisibility { get; }
+	private ReadOnlyReactivePropertySlim<Visibility> _GoogleTimeoutError { get; }
 	public ReadOnlyReactivePropertySlim<Visibility> GoogleTimeoutError { get; }
 
 	// マイク
@@ -90,8 +99,13 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ReactivePropertySlim<int> HpfParamaterIndex { get; }
 	public ReactiveCollection<string> VadMethodsBinder { get; }
 	public ReactivePropertySlim<int> VadMethodsIndex { get; }
+	public ReactivePropertySlim<string> VadSileroThresholdBinder { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> VadSileroOptionVisibility { get; }
 	public ReadOnlyReactivePropertySlim<Visibility> MicrophoneThresholdDbError { get; }
 	public ReadOnlyReactivePropertySlim<Visibility> MicrophoneRecordMinDurationError { get; }
+	// VadSileroThresholdErrorでRx合成用の一時プロパティ
+	private ReadOnlyReactivePropertySlim<Visibility> _VadSileroThresholdError { get; }
+	public ReadOnlyReactivePropertySlim<Visibility> VadSileroThresholdError { get; }
 
 	// ゆかりねっと連携
 	public ReactivePropertySlim<bool> IsUsedYukarinetteBinding { get; }
@@ -131,7 +145,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ConfigBinder(Config config) {
 		// モデル
 		this.TranscribeModelsBinder = new();
-		this.TranscribeModelsBinder.AddRangeOnScheduler(TranscribeModels);
+		this.TranscribeModelsBinder.AddRangeOnScheduler(TranscribeModels.Select(x => new TranscribeItem(x.Name, x.Enabled)));
 		this.TranscribeModeIndex = new(initialValue: config.TranscribeModel switch {
 			"kotoba_whisper" => TranscribeIndexAi,
 			"google_mix" => TranscribeIndexGoogle,
@@ -165,9 +179,13 @@ public class ConfigBinder : INotifyPropertyChanged {
 				TranscribeIndexGoogle => Visibility.Visible,
 				_ => Visibility.Hidden,
 			}).ToReadOnlyReactivePropertySlim();
-		this.GoogleTimeoutError = this.GoogleTimeoutBinding
+		this._GoogleTimeoutError = this.GoogleTimeoutBinding
 			.Select(x => this.ToFloatError(x))
 			.ToReadOnlyReactivePropertySlim();
+		this.GoogleTimeoutError = this._GoogleTimeoutError
+			.CombineLatest(this.GoogleItemVisibility,
+				(p1, p2) => this.Visibilities2Visibility(p1, p2)
+			).ToReadOnlyReactivePropertySlim();
 
 		// マイク
 		this.MicDevicesBinder = new();
@@ -218,13 +236,42 @@ public class ConfigBinder : INotifyPropertyChanged {
 			VadMethodIndexYAMNet => "yamnet",
 			_ => null
 		});
-
+		this.VadSileroThresholdBinder = new(initialValue: this.ToString(config.VadSileroThreshold));
+		this.VadSileroThresholdBinder.Subscribe(x => {
+			config.VadSileroThreshold = this.ToFloat(x);
+		});
+		this.VadSileroOptionVisibility = this.VadMethodsIndex
+			.Select(x => x switch {
+				1 => Visibility.Visible,
+				_ => Visibility.Hidden,
+			}).ToReadOnlyReactivePropertySlim();
 		this.MicrophoneThresholdDbError = this.MicrophoneThresholdDbBinder
 			.Select(x => this.ToFloatError(x))
 			.ToReadOnlyReactivePropertySlim();
 		this.MicrophoneRecordMinDurationError = this.MicrophoneRecordMinDurationBinder
 			.Select(x => this.ToFloatError(x))
 			.ToReadOnlyReactivePropertySlim();
+		this._VadSileroThresholdError = this.VadSileroThresholdBinder
+			.Select(x => x switch {
+				string v when !string.IsNullOrEmpty(v) => ToFloat(v) switch {
+					null => Visibility.Visible,
+					float vv when(0 <= vv) && (vv <= 1.0f) => Visibility.Collapsed,
+					_ => Visibility.Visible,
+				},
+				_ => Visibility.Collapsed
+			}).ToReadOnlyReactivePropertySlim();
+		this.VadSileroThresholdError = this._VadSileroThresholdError
+			.CombineLatest(this.VadSileroOptionVisibility,
+				(p1, p2) => {
+					static bool conv(Visibility v) => v switch {
+						Visibility.Visible => true,
+						_ => false
+					};
+					return (conv(p1) && conv(p2)) switch {
+						true => Visibility.Visible,
+						_ => Visibility.Collapsed
+					};
+				}).ToReadOnlyReactivePropertySlim();
 
 		// ゆかりねっと連携
 		this.IsUsedYukarinetteBinding = new(initialValue: config.IsUsedYukarinette);
@@ -364,6 +411,35 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public ReadOnlyReactivePropertySlim<string> IlluminateClientDialogFilter { get; }
 	public ReadOnlyReactivePropertySlim<string?> IlluminateClientDialogDirectory { get; }
 
+	private static bool CanUsedCuda() {
+		var cudaDevice = 0;
+		var hNvcuda = default(nint);
+		try {
+			hNvcuda = Helpers.Interop.LoadLibrary("nvcuda.dll");
+			if(hNvcuda == 0) {
+				return false;
+			}
+
+			var pCuInit = Helpers.Interop.GetProcAddress(hNvcuda, "cuInit");
+			var pCuDeviceGetCount = Helpers.Interop.GetProcAddress(hNvcuda, "cuDeviceGetCount");
+			if((pCuInit == 0) || (pCuDeviceGetCount == 0)) {
+				return false;
+			}
+
+			var cuInit = System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer<cuInit>(pCuInit);
+			var cuDeviceGetCount = System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer<cuDeviceGetCount>(pCuDeviceGetCount);
+
+			cuInit(0);
+			cuDeviceGetCount(ref cudaDevice);
+		}
+		finally {
+			if(0 != hNvcuda) {
+				Helpers.Interop.FreeLibrary(hNvcuda);
+			}
+		}
+		return 0 < cudaDevice;
+	}
+
 	private string ToString<T>(T v) {
 		if(v == null) {
 			return "";
@@ -410,5 +486,17 @@ public class ConfigBinder : INotifyPropertyChanged {
 		} else {
 			return Visibility.Visible;
 		}
+	}
+
+	private Visibility Visibilities2Visibility(params Visibility[] visibilities) {
+		var ret = true;
+		foreach(var v in visibilities) {
+			ret &= (v == Visibility.Visible);
+		}
+
+		return ret switch {
+			true => Visibility.Visible,
+			_ => Visibility.Collapsed,
+		};
 	}
 }
