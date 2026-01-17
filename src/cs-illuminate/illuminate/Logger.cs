@@ -6,26 +6,32 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Reactive.Linq;
 
 namespace Haru.Kei;
 class Logger {
 	public static Logger Current { get; } = new();
 
+	private System.Reactive.Concurrency.EventLoopScheduler LogScheduler { get; } = new();
 	private Stream? _stream;
 	private string? _filePath;
 
 	public void Info(object s) {
-		var st = Get();
-		//Console.WriteLine($"{time}[{pid}][{tid}]{s}");
-		st.Write(System.Text.Encoding.UTF8.GetBytes($"{Prefix()}[i]{s}\r\n"));
-		st.Flush();
+		this.Write($"{Prefix()}[i]{s}\r\n");
 	}
 
 	public void Debug(object s) {
-		var st = Get();
-		//Console.WriteLine($"{time}[{pid}][{tid}]{s}");
-		st.Write(System.Text.Encoding.UTF8.GetBytes($"{Prefix()}[d]{s}\r\n"));
-		st.Flush();
+		this.Write($"{Prefix()}[d]{s}\r\n");
+	}
+
+	private void Write(string text) {
+		Observable.Return(text)
+			.SubscribeOn(LogScheduler)
+			.Subscribe(x => {
+				var st = Get();
+				st.Write(System.Text.Encoding.UTF8.GetBytes(text));
+				st.Flush();
+			});
 	}
 
 	private string Prefix() {

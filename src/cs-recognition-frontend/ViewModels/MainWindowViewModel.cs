@@ -134,9 +134,6 @@ public class MainWindowViewModel : BindableBase {
 				this.Config.MicrophoneThresholdDb = conf0.ArgMicDbThresholdV2;
 				this.Config.MicrophoneRecordMinDuration = conf0.ArgMicRecordMinDuration;
 				{
-					if(int.TryParse(conf0.ArgVadParamaterV2, out var v1)) {
-						this.Config.VadGoogleParamater = v1;
-					}
 					if(Enum.TryParse<HpfArgGenerater.HpfParamater>(conf0.ArgVadParamaterV2, out var v2)) {
 						this.Config.HpfParamater = v2 switch {
 							HpfArgGenerater.HpfParamater.無効 => ConfigBinder.HpfParamDisable,
@@ -483,7 +480,6 @@ public class MainWindowViewModel : BindableBase {
 	private void OnConnectWhisper() {
 		this.ConfigBinder.TranscribeModeIndex.Value = ConfigBinder.TranscribeIndexAi;
 		this.ConfigBinder.HpfParamaterIndex.Value = ConfigBinder.HpfIndexHi;
-		this.ConfigBinder.VadGoogleParamaterIndex.Value = ConfigBinder.VadGoogleLevel0;
 		this.ConfigBinder.MicrophoneRecordMinDurationBinder.Value = "0.8";
 	}
 
@@ -491,7 +487,6 @@ public class MainWindowViewModel : BindableBase {
 		this.ConfigBinder.TranscribeModeIndex.Value = ConfigBinder.TranscribeIndexGoogle;
 		this.ConfigBinder.GoogleProfanityFilterBinder.Value = true;
 		this.ConfigBinder.HpfParamaterIndex.Value = ConfigBinder.HpfIndexDisable;
-		this.ConfigBinder.VadGoogleParamaterIndex.Value = ConfigBinder.VadGoogleLevel0;
 		this.ConfigBinder.MicrophoneRecordMinDurationBinder.Value = "";
 
 	}

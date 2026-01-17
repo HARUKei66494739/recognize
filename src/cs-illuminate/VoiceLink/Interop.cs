@@ -100,6 +100,10 @@ internal static class Interop {
 	public static extern int GetDlgCtrlID(nint hwnd);
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
 	public static extern bool SetWindowText(nint hWnd, string lpString);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	public static extern bool ClientToScreen(nint hWnd, ref POINT lpPoint);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	public static extern bool ScreenToClient(nint hWnd, ref POINT lpPoint);
 
 	public const int WM_KILLFOCUS = 0x0008;
 	public const int WM_LBUTTONDOWN = 0x201;

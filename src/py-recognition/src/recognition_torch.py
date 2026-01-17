@@ -431,7 +431,7 @@ else:
         def required_sample_rate(self) -> int | None:
             return 16000
 
-        def translate(self, audio_data:np.ndarray) -> TranslateResult:
+        def translate(self, audio_data:np.ndarray, text:str) -> TranslateResult:
             reslut = self.__pipe(
                 audio_data.astype(np.float16) / float(np.iinfo(np.int16).max),
                 generate_kwargs = self.__generate_kwargs_translate)
@@ -462,5 +462,43 @@ else:
             if isinstance(r, list):
                 return TranscribeResult("".join(r), reslut)
             raise ex.ProgramError(f"pipelineから意図しない戻り値型:{type(r)}")
+
+
+    class TranslateModelTranslateGemma(TranslateModel):
+        def __init__(self, device:str, device_index:int, parameter_size:int, target:str) -> None:
+            torch_dtype = torch.bfloat16 if device == "cuda" else torch.float32
+
+            if device == "cuda":
+                device = f"{device}:{device_index}"
+            self.__pipe = pipeline(
+                "image-text-to-text",
+                model=f"google/translategemma-{parameter_size}b-it",
+                device=device,
+                dtype=torch_dtype
+            )
+            self.__source_lang_code = "ja-JP"
+            self.__target_lang_code = target
+
+        @property
+        def required_sample_rate(self) -> int | None:
+            return None
+
+        def translate(self, audio_data:np.ndarray, text:str) -> TranslateResult:
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "source_lang_code": self.__source_lang_code,
+                            "target_lang_code": self.__target_lang_code,
+                            "text": text,
+                        }
+                    ],
+                }
+            ]
+            output = self.__pipe(text=messages, max_new_tokens=200) #type: ignore
+            r:str = output[0]["generated_text"][-1]["content"] #type: ignore
+            return TranslateResult(r, output)
 
 

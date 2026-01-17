@@ -131,7 +131,7 @@ def run(
                 logger.notice(fill_right(f"認識時間[{green(round(r.time, 2), 's')}],PCM[{green(round(pcm_sec, 2), 's')}],{green(round(r.time/pcm_sec, 2), 'tps')}: {r.result.transcribe}"), console=val.Console.DefaultColor)
 
                 if translate_model != None:
-                    rr = performance(lambda: translate_model.translate(np.frombuffer(dd, np.int16).flatten())) # type: ignore
+                    rr = performance(lambda: translate_model.translate(np.frombuffer(dd, np.int16).flatten(), r.result.transcribe )) # type: ignore
                     assert(isinstance(rr.result, recognition_translate.TranslateResult))
                     translate = rr.result.translate
 

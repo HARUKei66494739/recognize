@@ -29,8 +29,9 @@ class SubtitleOutputer(RecognitionOutputer):
         t.setDaemon(True)
         t.start()
 
-    def output(self, text_ja:str, text_en:str) -> None:
+    def output(self, text_ja:str, text_en:str) -> str:
         self.__prv_time = time.time()
+        return text_ja
 
 
 class NopSubtitleOutputer(SubtitleOutputer):
@@ -58,7 +59,7 @@ class FileSubtitleOutputer(SubtitleOutputer):
             encoding="UTF-8",
             newline="")
 
-    def output(self, text_ja:str, text_en:str) -> None:
+    def output(self, text_ja:str, text_en:str) -> str:
         self.__io_ja.seek(0)
         self.__io_en.seek(0)
         self.__io_ja.truncate(0)
@@ -67,7 +68,7 @@ class FileSubtitleOutputer(SubtitleOutputer):
         self.__io_en.write(text_en)
         self.__io_ja.flush()
         self.__io_en.flush()
-        super().output(text_ja, text_en)
+        return super().output(text_ja, text_en)
 
 
 
@@ -82,6 +83,7 @@ class ObsV5SubtitleOutputer(SubtitleOutputer):
             password:str,
             target_text_ja:str | None,
             target_text_en:str | None,
+            target_starts_with:bool,
             truncate_sec:float,
             logger:Logger) -> None:
         super().__init__(truncate_sec, logger)
@@ -91,12 +93,13 @@ class ObsV5SubtitleOutputer(SubtitleOutputer):
         self.__password = password
         self.__target_text_ja = target_text_ja
         self.__target_text_en = target_text_en
+        self.__target_starts_with = target_starts_with
         self.__try_connect(
             self.__host,
             self.__port,
             self.__password)
 
-    def output(self, text_ja:str, text_en:str) -> None:
+    def output(self, text_ja:str, text_en:str) -> str:
         if self.__obs is None:
             self.__try_connect(
                 self.__host,
@@ -105,24 +108,39 @@ class ObsV5SubtitleOutputer(SubtitleOutputer):
 
         if self.__obs is not None:
             try:
+                # 毎回リストとる必要あるのかって話はあります
+                targets:list[str]|None = None
+                if self.__target_starts_with:
+                    try:
+                        ret = self.__obs.call(obswebsocket.requests.GetInputList())
+                        targets = list(map(lambda x: x["inputName"], [x for x in ret.getInputs() if x["inputKind"].startswith("text_gdiplus")]))
+                    except:
+                        pass
                 if self.__target_text_ja is not None:
-                    self.__obs.call(obswebsocket.requests.SetInputSettings(
-                        inputName = self.__target_text_ja,
-                        inputSettings = {
-                            "text": text_ja,
-                        }
-                    ))
+                    if self.__target_starts_with and (targets != None):
+                        for nm in [x for x in targets if x.startswith(self.__target_text_ja)]:
+                            self.__setInputSettings(nm, text_ja)
+                    else:
+                        self.__setInputSettings(self.__target_text_ja, text_ja)
                 if self.__target_text_en is not None:
-                    self.__obs.call(obswebsocket.requests.SetInputSettings(
-                        inputName = self.__target_text_en,
-                        inputSettings = {
-                            "text": text_en,
-                        }
-                    ))
+                    if self.__target_starts_with and (targets != None):
+                        for nm in [x for x in targets if x.startswith(self.__target_text_en)]:
+                            self.__setInputSettings(nm, text_en)
+                    else:
+                        self.__setInputSettings(self.__target_text_en, text_en)
+
             except websocket._exceptions.WebSocketConnectionClosedException:
                 self.__obs = None
                 self._logger.error("OBSとの接続が閉じられました")
-        super().output(text_ja, text_en)
+        return super().output(text_ja, text_en)
+
+    def __setInputSettings(self, name:str, text:str):
+        if self.__obs is not None:
+            self.__obs.call(obswebsocket.requests.SetInputSettings(
+                inputName = name,
+                inputSettings = {
+                    "text": text,
+                }))
 
     def __try_connect(self, host, port, password) -> bool:
         try:

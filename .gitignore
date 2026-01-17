@@ -8,6 +8,7 @@ Record/*
 src/py-recognition/.venv
 src/py-recognition/whl/
 src/cs-illuminate/dist/
+src/cs-installer/dist/
 src/cs-recognition-frontend/dist/
 
 *.csproj.user

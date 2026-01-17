@@ -22,7 +22,7 @@ class TranslateModel:
     def required_sample_rate(self) -> int | None:
         ...
 
-    def translate(self, audio_data:np.ndarray) -> TranslateResult:
+    def translate(self, audio_data:np.ndarray, text:str) -> TranslateResult:
         ...
 
 #class TranslateException(ex.IlluminateException):

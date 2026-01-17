@@ -85,16 +85,17 @@ def __whiper_help(s:str) -> str:
 
 @click.option("--transcribe_filter", default=None, help="変換フィルタルールファイル", type=str)
 
-@click.option("--translate", default="", help="使用する翻訳方法", type=click.Choice(val.ARG_CHOICE_TRANSLATE))
+@click.option("--translate", default=val.DEFALUT_TRANSLATE_VALUE, help="使用する翻訳方法", type=click.Choice(val.ARG_CHOICE_TRANSLATE))
 @click.option("--translate_whisper_device", default=__available_cuda(), help=__whiper_help("(whisper)翻訳に使用する演算装置"), type=click.Choice(["cpu","cuda"]))
 @click.option("--translate_whisper_device_index", default=0, help=__whiper_help("(whisper)翻訳に使用するデバイスindex"), type=int)
+@click.option("--translate_gemma_size", default=4, help=__whiper_help("(gemma)パラメータサイズ"), type=click.Choice([4,12,27]))
 
 @click.option("--mic", default=None, help="使用するマイクのindex", type=int)
 @click.option("--mic_name", default=None, help="マイクの名前を部分一致で検索します。--micが指定されている場合この指定は無視されます", type=str)
 #@click.option("--mic_api", default=val.MIC_API_VALUE_MME, help="--mic_nameで検索するマイクのAPIを指定します", type=click.Choice(val.ARG_CHOICE_MIC_API))
 @click.option("--mic_energy_threshold", default=None, help="互換性のため残されています", type=float)
 @click.option("--mic_db_threshold", default=0, help="設定した値より小さい音を無言として扱う閾値", type=float)
-@click.option("--mic_pause_duration", default=0.8, help="声認識後VADにかけていいく塊の秒数", type=float)
+@click.option("--mic_pause_duration", default=None, help="声認識後VADにかけていいく塊の秒数", type=float)
 @click.option("--mic_record_min_duration", default=0.0, help="マイクの入力がこの値より短い場合無視する秒数", type=float)
 #@click.option("--mic_sampling_rate", default=16000, help="-", type=int)
 @click.option("--mic_head_insert_duration", default=None, help="-", type=float)
@@ -102,7 +103,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--mic_push_talk", default=None, help="マイクをプッシュトゥトークで使用するための監視パラメータ", type=str, multiple=True)
 
 
-@click.option("--out", default=val.OUT_VALUE_PRINT, help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT), multiple=True)
+@click.option("--out", default=[val.OUT_VALUE_PRINT], help="認識結果の出力先", type=click.Choice(val.ARG_CHOICE_OUT), multiple=True)
 @click.option("--out_yukarinette",default=49513, help="ゆかりねっとの外部連携ポートを指定", type=int)
 @click.option("--out_yukacone",default=None, help="ゆかコネNEOの外部連携ポートを指定", type=int)
 @click.option("--out_illuminate_exe",default="", help="-", type=str)
@@ -113,7 +114,7 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_illuminate_notify_icon",default=False, help="-",type=bool, is_flag=True)
 @click.option("--out_illuminate_debug",default=False, help="-",type=bool, is_flag=True)
 @click.option("--out_illuminate_kana",default=False, help="-",type=bool, is_flag=True)
-@click.option("--out_illuminate_capture_pause",default=0.75, help="-",type=float)
+@click.option("--out_illuminate_capture_pause",default=1.0, help="-",type=float)
 @click.option("--out_file_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
 @click.option("--out_file_directory", default=None, help="ファイル字幕連携で保存先", type=str)
 @click.option("--out_obs_truncate", default=4.0, help="字幕を消去する時間(秒)", type=float)
@@ -122,11 +123,11 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_obs_password", default="", help="OBS Web Socket APIのパスワード", type=str)
 @click.option("--out_obs_text_ja", default=None, help="字幕(ja_JP)テキストオブジェクトの名前", type=str)
 @click.option("--out_obs_text_en", default=None, help="字幕(en_US)テキストオブジェクトの名前", type=str)
+@click.option("--out_obs_text_starts_with", default=False, help="", type=bool, is_flag=True)
 
 @click.option("--filter_hpf", default=None, help="ハイパスフィルタのカットオフ周波数を設定、ハイパスフィルタを有効化", type=int)
 
-@click.option("--vad", default=val.VAD_VALUE_GOOGLE, help="VADエンジンの選択", type=click.Choice(val.ARG_CHOICE_VAD))
-@click.option("--vad_google_mode", default="0", help="VADの強度",type=click.Choice(["0", "1", "2", "3"]))
+@click.option("--vad", default=val.VAD_VALUE_SILERO, help="VADエンジンの選択", type=click.Choice(val.ARG_CHOICE_VAD))
 @click.option("--vad_silero_threshold", default=0.5, help="-",type=float)
 @click.option("--vad_silero_min_speech_duration", default=0.25, help="-",type=float)
 
@@ -143,6 +144,11 @@ def __whiper_help(s:str) -> str:
 @click.option("--torch_cache", default="", help="torchがダウンロードするキャッシュの場所を指定します", type=str)
 @click.option("--feature", default="", help="-", type=str)
 @click.option("--ftr_transcribe_file", default="", help="-", type=str)
+
+
+@click.option("--huggingface_login", default="", help="huggingfaceログインコン", type=str)
+@click.option("--huggingface_logout", default=False, help="-", is_flag=True, type=bool)
+
 def main(
     test:str,
     method:str,
@@ -162,6 +168,7 @@ def main(
     translate:str,
     translate_whisper_device:str,
     translate_whisper_device_index:int,
+    translate_gemma_size:int,
 
     mic:Optional[int],
     mic_name:Optional[str],
@@ -169,7 +176,7 @@ def main(
 
     mic_energy_threshold:Optional[float],
     mic_db_threshold:float,
-    mic_pause_duration:float,
+    mic_pause_duration:Optional[float],
     mic_record_min_duration:float,
     mic_head_insert_duration:Optional[float],
     mic_tail_insert_duration:Optional[float],
@@ -185,7 +192,8 @@ def main(
     out_illuminate_port:int,
     out_illuminate_notify_icon:bool,
     out_illuminate_kana:bool,
-    out_illuminate_debug:bool,    out_illuminate_capture_pause:float,
+    out_illuminate_debug:bool,
+    out_illuminate_capture_pause:float,
     out_file_truncate:float,
     out_file_directory:str,
     out_obs_truncate:float,
@@ -194,10 +202,10 @@ def main(
     out_obs_password:str,
     out_obs_text_ja:Optional[str],
     out_obs_text_en:Optional[str],
+    out_obs_text_starts_with:bool,
 
     filter_hpf:Optional[int],
     vad:str,
-    vad_google_mode:str,
     vad_silero_threshold:float,
     vad_silero_min_speech_duration:float,
     verbose:str,
@@ -210,7 +218,10 @@ def main(
 
     torch_cache:str,
     feature:str,
-    ftr_transcribe_file:str
+    ftr_transcribe_file:str,
+
+    huggingface_login:str,
+    huggingface_logout:bool
     ) -> None:
     from src import ilm_logger, ilm_enviroment, enable_virtual_terminal
 
@@ -220,15 +231,34 @@ def main(
     # torch/kotoba-whisperのダウンロード設定をする(torchのimport前に実施)
     if torch_cache == "" or torch_cache == None:
         os.environ["TORCH_HOME"] = \
-            os.environ["HUGGINGFACE_HUB_CACHE"] = \
-                f"{ilm_enviroment.root}{os.sep}.cache"
+            os.environ['TFHUB_CACHE_DIR'] = \
+            f"{ilm_enviroment.root}{os.sep}.cache"
+        os.environ["HF_HOME"] = f"{ilm_enviroment.root}{os.sep}.cache{os.sep}huggingface"
     else:
         os.environ["TORCH_HOME"] = \
-            os.environ["HUGGINGFACE_HUB_CACHE"] = \
-                f"{torch_cache}{os.sep}.cache"     
+            os.environ['TFHUB_CACHE_DIR'] = \
+            f"{torch_cache}{os.sep}.cache"     
+        os.environ["HF_HOME"] = f"{torch_cache}{os.sep}.cache{os.sep}huggingface"
 
     if out_illuminate_exe == "":
         out_illuminate_exe = "" 
+
+
+    #環境変数が設定されている必要がある
+    if huggingface_login is not None and huggingface_login != "":
+        from huggingface_hub import login
+
+        login(token=huggingface_login, add_to_git_credential=False)
+        print("done.")
+        return
+    
+    if huggingface_logout:
+        from huggingface_hub import logout
+
+        logout()
+        print("done.")
+        return
+
 
     cancel = CancellationObject()
     try:
@@ -254,7 +284,8 @@ def main(
                     out_illuminate_kana,
                     out_illuminate_notify_icon,
                     out_illuminate_debug,
-                    out_illuminate_capture_pause),
+                    out_illuminate_capture_pause,
+                    cancel),
                 ilm_logger,
                 feature)
 
@@ -283,19 +314,13 @@ def main(
                 filter_hpf)
             filters.append(filter_highPass)
         # VADフィルタの準備
-        filter_vad_inst:filter.VoiceActivityDetectorFilter
-        if vad == val.VAD_VALUE_GOOGLE:
-            filter_vad_inst = filter.GoogleVadFilter(
+        filter_vad_inst:filter.VoiceActivityDetectorFilter = {
+            val.VAD_VALUE_SILERO: lambda: filter.SileroVadFilter(
                 val.MIC_SAMPLE_RATE,
-                int(vad_google_mode))
-        elif vad == val.VAD_VALUE_SILERO:
-            import src.filter_torch as fil_torch
-            filter_vad_inst = fil_torch.SileroVadFilter(
-                val.MIC_SAMPLE_RATE,
-                vad_silero_threshold,
-                vad_silero_min_speech_duration)
-        else:
-            raise ValueError(f"vad:{vad} is not support")
+                vad_silero_threshold),
+            val.VAD_VALUE_YAMNET: lambda: filter.YAMNetVadFilter(
+                val.MIC_SAMPLE_RATE),
+        }[vad]()
         filters.append(filter_vad_inst)
 
         ilm_logger.print("マイクの初期化")
@@ -419,13 +444,20 @@ def main(
                         is_loaded_torch = True
                     import src.recognition_torch as recognition_torch
                     translate_model = {
-                        val.METHOD_VALUE_WHISPER_KOTOBA: lambda: recognition_torch.RecognizeAndTranslateModelKotobaWhisper(
+                        val.TRANSLATE_VALUE_WHISPER_KOTOBA: lambda: recognition_torch.RecognizeAndTranslateModelKotobaWhisper(
                             device=translate_whisper_device,
                             device_index=translate_whisper_device_index),
+                        val.TRANSLATE_VALUE_GEMMA: lambda: recognition_torch.TranslateModelTranslateGemma(
+                            device=translate_whisper_device,
+                            device_index=translate_whisper_device_index,
+                            parameter_size=translate_gemma_size,
+                            target="en")
                     }[translate]()
                 ilm_logger.debug(f"#翻訳モデルは{type(translate_model)}を使用", reset_console=True)
 
+            ilm_logger.print("出力モデルの初期化")
             outputers:list[output.RecognitionOutputer] = []
+            illuminate:output.IlluminateSpeechOutputer|None = None
             outputer_map = {
                 #val.OUT_VALUE_PRINT: lambda: output.PrintOutputer(),
                 val.OUT_VALUE_YUKARINETTE: lambda: output.YukarinetteOutputer(
@@ -442,13 +474,15 @@ def main(
                     out_illuminate_notify_icon,
                     out_illuminate_kana,
                     out_illuminate_debug,
-                    out_illuminate_capture_pause),
+                    out_illuminate_capture_pause,
+                    cancel),
                 val.OUT_VALUE_OBS: lambda: output_subtitle.ObsV5SubtitleOutputer(
                     out_obs_host,
                     out_obs_port,
                     out_obs_password,
                     out_obs_text_ja,
                     out_obs_text_en,
+                    out_obs_text_starts_with,
                     out_obs_truncate,
                     ilm_logger),
                 val.OUT_VALUE_FILE: lambda: output_subtitle.FileSubtitleOutputer(
@@ -460,8 +494,25 @@ def main(
             outputers.append(output.PrintOutputer())
             for it in out:
                 if it in outputer_map:
-                    outputers.append(outputer_map[it]())
-            ilm_logger.debug(f"#出力は{','.join(list(map(lambda x: f'{type(x)}', outputers)))}を使用", reset_console=True)
+                    o = outputer_map[it]()
+                    outputers.append(o)
+                    if isinstance(o, output.IlluminateSpeechOutputer):
+                        illuminate = o
+            if illuminate != None:
+                ilm_logger.print("illuminate同期の設定")
+
+                sbtl:list[output.RecognitionOutputer] = []
+                for it in outputers:
+                    if isinstance(it, output_subtitle.SubtitleOutputer):
+                        sbtl.append(it)
+                if 0 < len(sbtl):
+                    for it in sbtl:
+                        outputers.remove(it)
+                    illuminate.set_subtitle_cooperation(sbtl)
+                ilm_logger.debug(f"#出力は{','.join(list(map(lambda x: f'{type(x)}', outputers)))}を使用", reset_console=True)
+                ilm_logger.debug(f"#illuminate同期は{','.join(list(map(lambda x: f'{type(x)}', sbtl)))}を使用", reset_console=True)
+            else:
+                ilm_logger.debug(f"#出力は{','.join(list(map(lambda x: f'{type(x)}', outputers)))}を使用", reset_console=True)
 
             ilm_logger.debug(f"#使用音声フィルタ({len(filters)}):", reset_console=True)
             for f in filters:

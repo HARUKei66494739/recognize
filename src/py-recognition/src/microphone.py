@@ -77,7 +77,7 @@ class Microphone:
             mp_recog_conf:recognition.RecognizeMicrophoneConfig,
             filter_vad:filter.VoiceActivityDetectorFilter,
             filter_highPass:filter.HighPassFilter | None,
-            phase2_sec:float,
+            phase2_sec:float | None,
             record_min_sec:float,
             push_talk:list[str],
             device:int|None,
@@ -88,7 +88,10 @@ class Microphone:
         self.__filter_highPass = filter_highPass
         self.__device = device
         self.__vad_sec = 0.5
-        self.__vad_phase2_sec = phase2_sec
+        if phase2_sec == None:
+            self.__vad_phase2_sec = filter_vad.mic_pause_duration
+        else:
+            self.__vad_phase2_sec = phase2_sec
         self.__record_min_sec = record_min_sec
         self.__sample_rate = val.MIC_SAMPLE_RATE
         self.__sample_width = val.MIC_SAMPLE_WIDTH

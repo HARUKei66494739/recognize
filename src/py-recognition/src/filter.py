@@ -1,5 +1,12 @@
 import numpy 
-import webrtcvad
+import io
+import numpy
+import torchaudio
+import scipy
+import tensorflow
+import tensorflow_hub
+import csv
+from silero_vad import load_silero_vad, get_speech_timestamps
 
 class NoiseFilter:
     """
@@ -63,161 +70,80 @@ class VadFrame(object):
 
 
 class VoiceActivityDetectorFilter:
+    @property
+    def mic_pause_duration(self) -> float:
+        ...
+
     def check(self, data:bytes) -> bool:
         ...
 
 
-class GoogleVadFilter(VoiceActivityDetectorFilter):
+class SileroVadFilter(VoiceActivityDetectorFilter):
     """
-    VADフィルタ
+    Silero-VADフィルタ
     """
+
     def __init__(   
         self,
         sampling_rate:int,
-        vad_mode:int):
-        self.__vad = webrtcvad.Vad(vad_mode)
+        threshold):
+
+        self.__model = load_silero_vad()
         self.__sampling_rate = sampling_rate
+        self.__threshold = threshold
+
+    @property
+    def mic_pause_duration(self) -> float:
+        return 1.0
 
     def check(self, data:bytes) -> bool:
-        frame_duration_ms = 30
-        return GoogleVadFilter._check(
-            self.__sampling_rate,
-            frame_duration_ms, frame_duration_ms * 10,
-            self.__vad,
-            list(GoogleVadFilter._frame_generator(frame_duration_ms, data, self.__sampling_rate)))
+        bytes_io = io.BytesIO()
+        raw_data = numpy.frombuffer(
+            buffer=data, dtype=numpy.int16
+        )
+        scipy.io.wavfile.write(bytes_io, 16000, raw_data)
 
+        auido, _ = torchaudio.load(bytes_io)
+        speech_timestamps = get_speech_timestamps(
+            auido,
+            self.__model,
+            threshold=self.__threshold,
+            sampling_rate=self.__sampling_rate)
+        return 0 < len(speech_timestamps)
+    
 
-    @staticmethod
-    def _frame_generator(frame_duration_ms:int, audio:bytes, sample_rate:int):
-        """Generates audio frames from PCM audio data.
+class YAMNetVadFilter(VoiceActivityDetectorFilter):
+    """
+    YAMNet-VADフィルタ
+    """
 
-        Takes the desired frame duration in milliseconds, the PCM data, and
-        the sample rate.
+    def __init__(   
+        self,
+        sampling_rate:int):
 
-        Yields Frames of the requested duration.
-        """
-        n = int(sample_rate * (frame_duration_ms / 1000.0) * 2)
-        offset = 0
-        timestamp = 0.0
-        duration = (float(n) / sample_rate) / 2.0
-        while offset + n < len(audio):
-            yield VadFrame(audio[offset:offset + n], timestamp, duration)
-            timestamp += duration
-            offset += n
+        self.__model = tensorflow_hub.load("https://tfhub.dev/google/yamnet/1")
+        self.__classes = [
+            "Speech",
+            "Speech synthesizer",
+            "Narration, monologue"
+        ]
 
-    # 参考にしたオリジナルの実装
-    @staticmethod
-    def _vad_collector(
-        sample_rate:int,
-        frame_duration_ms:int,
-        padding_duration_ms:int,
-        vad:webrtcvad.Vad,
-        frames: list[VadFrame],
-        voice_trigger_on_thres:float=0.9,
-        voice_trigger_off_thres: float=0.1) -> list[dict]:
-        """音声非音声セグメント処理
+        # YAMNetクラス名一覧取得
+        with tensorflow.io.gfile.GFile(self.__model.class_map_path().numpy()) as csvfile:
+            reader = csv.DictReader(csvfile)
+            self.__class_names = list(map(lambda x: x["display_name"], reader))
 
-        Args:
-            sample_rate (int): 単位時間あたりのサンプル数[Hz]
-            frame_duration_ms (int): フレーム長
-            padding_duration_ms (int): ガード長
-            vad (webrtcvad.Vad): _description_
-            frames (list[Frame]): フレーム分割された音声データ
-            voice_trigger_on_thres (float, optional): 音声セグメント開始と判断する閾値. Defaults to 0.9.
-            voice_trigger_off_thres (float, optional): 音声セグメント終了と判断する閾値. Defaults to 0.1.
+    @property
+    def mic_pause_duration(self) -> float:
+        return 0.4
 
-        Returns:
-            list[dict]: セグメント結果
-        """
-        # ガードするフレーム数
-        num_padding_frames = int(padding_duration_ms / frame_duration_ms)
+    def check(self, data:bytes) -> bool:
+        wav = numpy.frombuffer(data, dtype=numpy.int16)
+        waveform = wav / tensorflow.int16.max
 
-        # バッファ(リングバッファではなくする)
-        # ring_buffer = collections.deque(maxlen=num_padding_frames)
-        frame_buffer = []
+        scores, _, _ = self.__model(waveform)
+        scores_np = scores.numpy()
 
-        # いま音声かどうかのトリガのステータス
-        triggered = False
+        class_scores = {cls: sc for cls, sc in zip(self.__class_names, scores_np.mean(axis=0))}
 
-        voiced_frames = []
-        vu_segments = []
-
-        for frame in frames:
-            is_speech = vad.is_speech(frame.bytes, sample_rate)
-            frame_buffer.append((frame, is_speech))
-
-            # 非音声セグメントの場合
-            if not triggered:
-
-                # 過去フレームのうち音声判定数を取得
-                # 過去を見る数はnum_padding_frames個
-                num_voiced = len([f for f, speech in frame_buffer[-num_padding_frames:] if speech])
-
-                # 9割以上が音声の場合は音声にトリガする(立ち上がり)
-                if num_voiced > voice_trigger_on_thres * num_padding_frames:
-                    triggered = True
-
-                    # num_padding_framesより前は非音声セグメントとする
-                    audio_data = b''.join([f.bytes for f, _ in frame_buffer[:-num_padding_frames]])
-                    vu_segments.append({"vad": 0, "audio_size": len(audio_data), "audio_data": audio_data})
-
-                    # num_padding_frames以降は音声セグメント終了時にまとめるため一旦保持
-                    for f, _ in frame_buffer[-num_padding_frames:]:
-                        voiced_frames.append(f)
-                    frame_buffer = []
-
-            # 音声セグメントの場合
-            else:
-                # フレームを保持
-                voiced_frames.append(frame)
-
-                # 過去フレームのうち非音声判定数を取得
-                # 過去を見る数はnum_padding_frames個
-                num_unvoiced = len([f for f, speech in frame_buffer[-num_padding_frames:] if not speech])
-
-                # 9割以上が非音声の場合はトリガを落とす(立ち下がり)
-                if num_unvoiced > (1 - voice_trigger_off_thres) * num_padding_frames:
-                    triggered = False
-
-                    # 音声セグメントをまとめる
-                    audio_data = b''.join([f.bytes for f in voiced_frames])
-                    vu_segments.append({"vad": 1, "audio_size": len(audio_data), "audio_data": audio_data})
-                    voiced_frames = []
-
-                    frame_buffer = []
-
-        # 終了時に音声セグメントか非音声セグメントかどうかで処理を分ける
-        if triggered:
-            audio_data = b''.join([f.bytes for f in voiced_frames])
-            vu_segments.append({"vad": 1, "audio_size": len(audio_data), "audio_data": audio_data})
-        else:
-            audio_data = b''.join([f.bytes for f, _ in frame_buffer])
-            vu_segments.append({"vad": 0, "audio_size": len(audio_data), "audio_data": audio_data})
-        return vu_segments
-
-    @staticmethod
-    def _check(
-        sample_rate:int,
-        frame_duration_ms:int,
-        padding_duration_ms:int,
-        vad:webrtcvad.Vad,
-        frames: list[VadFrame],
-        voice_trigger_on_thres:float=0.9,
-        voice_trigger_off_thres: float=0.1) -> bool:
-        # ガードするフレーム数
-        num_padding_frames = int(padding_duration_ms / frame_duration_ms)
-
-        # バッファ(リングバッファではなくする)
-        frame_buffer = []
-        for frame in frames:
-            is_speech = vad.is_speech(frame.bytes, sample_rate)
-            frame_buffer.append((frame, is_speech))
-
-            # 過去フレームのうち音声判定数を取得
-            # 過去を見る数はnum_padding_frames個
-            num_voiced = len([f for f, speech in frame_buffer[-num_padding_frames:] if speech])
-
-            # 9割以上が音声の場合は音声にトリガする(立ち上がり)
-            if num_voiced > voice_trigger_on_thres * num_padding_frames:
-                return True
-        return False
+        return 0.1 < sum(map(lambda x: class_scores[x], self.__classes))

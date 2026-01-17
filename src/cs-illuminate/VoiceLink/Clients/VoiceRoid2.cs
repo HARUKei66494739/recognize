@@ -154,6 +154,7 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 			throw new VoiceLinkException("");
 		}
 
+		this.FocusVoiceRoid2();
 		for (int i = 0; i < 10; i++) {
 			try {
 				var s = this.textBox.Ptr.accValue[0];
@@ -222,6 +223,7 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 				System.Threading.Thread.Sleep(1000);
 			}
 
+			this.FocusVoiceRoid2();
 			// 5回試行する
 			for (var i = 0; i < 5; i++) {
 				try {
@@ -263,6 +265,27 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 			}
 		}
 		return false;
+	}
+
+	/// <summary>ボイロ2エディタのテキストボックスに強引にフォーカスを移す</summary>
+	private void FocusVoiceRoid2() {
+		if (this.textBox != null) {
+			this.textBox.Ptr.accLocation(
+				out int pxLeft,
+				out int pyTop,
+				out int pcxWidth,
+				out int pcyHeight,
+				0);
+			var pt = new Interop.POINT() {
+				x = pxLeft,
+				y = pyTop,
+			};
+			Interop.ScreenToClient(hTargetWindow, ref pt);
+			Util.PlatformClick(
+				this.hTargetWindow,
+				pt.x + 4,
+				pt.y + 4);
+		}
 	}
 }
 

@@ -37,7 +37,7 @@ nt-lib(https://pypi.org/project/nt-lib/)
 
 pynput(https://pypi.org/project/pynput/)
 GNU Lesser General Public License v3
-Copyright (c)  Moses Palmér
+Copyright (c)  Moses Palmer
 
 
 
@@ -72,12 +72,6 @@ Copyright 2018- The Hugging Face team. All rights reserved.
 
 
 
-py-webrtcvad(https://pypi.org/project/webrtcvad/)
-MIT License
-Copyright (c) 2016 John Wiseman
-
-
-
 sounddevice(https://pypi.org/project/sounddevice/)
 MIT License
 Copyright (c) 2015-2024 Matthias Geier
@@ -104,6 +98,31 @@ Copyright (c) attwad
 openvr(https://pypi.org/project/openvr/)
 BSD-3-Clause license
 Copyright (c) 2016, Christopher Bruns
+
+
+
+silero-vad(https://pypi.org/project/silero-vad/)
+MIT License
+Copyright (c) 2020-present Silero Team
+
+
+
+scipy(https://pypi.org/project/scipy/)
+BSD-3-Clause license
+Copyright (c) 2001-2002 Enthought, Inc. 2003, SciPy Developers. All rights reserved.
+
+
+
+soundfile(https://pypi.org/project/soundfile/)
+BSD-3-Clause license
+Copyright (c) 2013, Bastian Bechtold All rights reserved.
+
+
+
+tensorflow(https://pypi.org/project/tensorflow/)
+tensorflow-hub(https://pypi.org/project/tensorflow-hub/)
+Apache Software License
+Copyright (C) Google Inc.
 
 
 
@@ -168,7 +187,7 @@ Copyright (c) 2007 James Newton-King
 
 Lucene.Net.Analysis.Kuromoji(https://www.nuget.org/packages/Lucene.Net.Analysis.Kuromoji/)
 Apache-2.0 license
-Copyright © 2024 The Apache Software Foundation
+Copyright c 2024 The Apache Software Foundation
 
 
 

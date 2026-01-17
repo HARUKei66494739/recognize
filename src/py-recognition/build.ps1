@@ -36,7 +36,7 @@ if( -not $? ) {
     echo 作業ディレクトリの作成に失敗しました
     exit 1
 }
-Copy-Item -Path .\src -Destination .\.build.\src -Recurse
+Copy-Item -Path .\src -Destination .\.build\src -Recurse
 if( -not $? ) {
     echo ソースコードの複製に失敗しました
     exit 1
@@ -86,9 +86,9 @@ echo ok
 echo ""
 
 echo exe化を実行します
-pyinstaller -n recognize --noconfirm  `
-  --add-binary "./.venv/Lib/site-packages/openvr/*.dll;./openvr" `
-  src/__main__.py
+pyinstaller -n recognize --noconfirm `
+  --additional-hooks-dir src\__pyinstaller `
+  src\__main__.py
 if($LASTEXITCODE -ne 0) {
     echo exe化に失敗しました
     popd
@@ -96,16 +96,6 @@ if($LASTEXITCODE -ne 0) {
 }
 $cd = Get-Location
 echo "$cd\dist\recognize に作成しました"
-echo ok
-echo ""
-
-echo mm-interopを配置します
-copy ..\c\mm-interop.dll .\dist\recognize\
-if( -not $? ) {
-    echo mm-interopの配置に失敗しました
-    popd
-    exit 1
-}
 echo ok
 echo ""
 

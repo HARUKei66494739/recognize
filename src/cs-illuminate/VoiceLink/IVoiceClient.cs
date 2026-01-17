@@ -64,8 +64,31 @@ public record AudioCaptreStart(string TargetExe) : IStartObject;
 /// <param name="ToneScale">抑揚（0～100）</param>
 /// <param name="Alpha">声質（0～100）</param>
 /// <param name="Components">感情パラメータ(パラメータ名, 値)</param>
-public record CeVioSpeechClient(string Cast, uint Volume, uint Speed, uint Tone, uint ToneScale, uint Alpha, IEnumerable<(string Name, uint Value)> Components) : ISpeechObject;
+public record CeVioSpeechClient(
+	string Cast,
+	uint Speed,
+	uint Tone,
+	uint ToneScale,
+	uint Alpha,
+	IEnumerable<(string Name, uint Value)> Components) : ISpeechObject {
 
+	public uint Volume { get; init; } = 50;
+}
+
+
+public record VoiceVoxSpeechClient(
+	string Host,
+	int Port,
+	int Speaker,
+	double SpeedScale,
+	double PitchScale,
+	double IntonationScale,
+	System.IO.MemoryStream Writer) : ISpeechObject {
+
+	public double VolumeScale { get; init; } = 1.0;
+	public int OutputSamplingRate { get; init; } = 48000;
+	public bool OutputStereo { get; init; } = false;
+}
 
 /// <summary>オーディオキャプチャのためのクライアントパラメータ</summary>
 public interface IAudioCaptireClient : IClientObject {

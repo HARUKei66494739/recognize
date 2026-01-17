@@ -15,7 +15,8 @@ class CommandOptions {
 		aivoice,
 		aivoice2,
 		ceviocs,
-		cevioai
+		cevioai,
+		voicevox,
 	}
 
 	[Option("master", Required = false, HelpText = "-")]
@@ -31,6 +32,11 @@ class CommandOptions {
 
 	[Option("log_dir", Required = false, HelpText = "-")]
 	public string LogDir { get; set; } = "";
+
+	[Option("wasapi_id", Required = false, HelpText = "-")]
+	public string WasapiId { get; set; } = "";
+
+
 	/*
 	[Option("log_", Required = false, HelpText = "-")]
 	public bool Launch { get; set; }
@@ -41,8 +47,11 @@ class CommandOptions {
 	public bool NotifyIcon { get; set; } = false;
 	[Option("debug", Required = false, HelpText = "-")]
 	public bool Debug { get; set; } = false;
+
+	[Option("capture_silence", Required = false, HelpText = "-")]
+	public float CaptureSilenceSec { get; set; } = 1.0f;
 	[Option("capture_pause", Required = false, HelpText = "-")]
-	public float CapturePauseSec { get; set; } = 0.75f;
+	public float CapturePauseSec { get; set; } = 1.0f;
 
 
 	[Option("cevio_cast", Required = false, HelpText = "-")]
@@ -59,6 +68,22 @@ class CommandOptions {
 	public uint CeVioAlpha { get; set; } = 100u;
 	[Option("cevio_components", Separator = ',', Required = false, HelpText = "-")]
 	public IEnumerable<string> CeVioComponents { get; set; } = Array.Empty<string>();
+
+
+	[Option("voicevox_host", Required = false, HelpText = "-")]
+	public string VoiceVoxHost { get; set; } = "127.0.0.1";
+	[Option("voicevox_port", Required = false, HelpText = "-")]
+	public int VoiceVoxPort { get; set; } = 50021;
+	[Option("voicevox_speaker", Required = false, HelpText = "-")]
+	public int VoiceVoxSpeaker { get; set; } = 0;
+	[Option("voicevox_speed", Required = false, HelpText = "-")]
+	public double VoiceVoxSpeedScale { get; set; } = 1.0;
+	[Option("voicevox_pitch", Required = false, HelpText = "-")]
+	public double VoiceVoxPitchScale { get; set; } = 1.0;
+	[Option("voicevox_intonation", Required = false, HelpText = "-")]
+	public double VoiceVoxIntonationScale { get; set; } = 1.0;
+
+
 
 	public (bool IsValid, string ErrorText) Validate() {
 		var retText = new StringBuilder();
@@ -93,15 +118,41 @@ class CommandOptions {
 				retText.AppendLine("CeVIO:cevio_tone_scaleの有効範囲は0～100です");
 			}
 			if (100u < this.CeVioAlpha) {
-				retText.AppendLine("CeVIO:cevio_componentsの書式が間違っています");
+				retText.AppendLine("CeVIO:cevio_alphaの有効範囲は0～100です");
 			}
 			try {
 				this.ParseCeVioComponents();
 			}
 			catch(FormatException) {
-				retText.AppendLine("CeVIO:cevio_alphaの有効範囲は0～100です");
+				retText.AppendLine("CeVIO:cevio_componentsの書式が間違っています");
 			}
 		}
+
+
+		if (this.Voice switch {
+			VoiceClientType.voicevox => true,
+			_ => false
+		}) {
+			if (0d <= this.VoiceVoxSpeedScale) {
+				retText.AppendLine("VoiceVox:voicevox_speedの有効範囲は0～2です");
+			}
+			if (0d <= this.VoiceVoxPitchScale) {
+				retText.AppendLine("VoiceVox:voicevox_pitchの有効範囲は0～2です");
+			}
+			if (0d <= this.VoiceVoxIntonationScale) {
+				retText.AppendLine("VoiceVox:voicevox_intonationの有効範囲は0～2です");
+			}
+			if (this.VoiceVoxSpeedScale <= 2d) {
+				retText.AppendLine("VoiceVox:voicevox_speedの有効範囲は0～2です");
+			}
+			if (this.VoiceVoxPitchScale <= 2d) {
+				retText.AppendLine("VoiceVox:voicevox_pitchの有効範囲は0～2です");
+			}
+			if (this.VoiceVoxIntonationScale <= 2d) {
+				retText.AppendLine("VoiceVox:voicevox_intonationの有効範囲は0～2です");
+			}
+		}
+
 		return (retText.Length == 0, retText.ToString());
 	}
 
@@ -125,4 +176,10 @@ class CommandOptions {
 		return ret.AsReadOnly();
 	}
 
+	public AudioCaptureParam GetCaptureParam()
+		=> new(
+			SilenceSec: this.CaptureSilenceSec,
+			PauseSec: this.CapturePauseSec);
 }
+
+record struct AudioCaptureParam(double SilenceSec, double PauseSec);

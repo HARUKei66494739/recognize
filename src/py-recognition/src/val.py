@@ -64,7 +64,8 @@ def __choice_method() -> list[str]:
 def __choice_translate() -> list[str]:
     r = [ "" ]
     if SUPPORT_LIB_WHISPER_KOTOBA:
-        r.append(METHOD_VALUE_WHISPER_KOTOBA)
+        r.append(TRANSLATE_VALUE_WHISPER_KOTOBA)
+        r.append(TRANSLATE_VALUE_GEMMA)
     return r
 
 def __support_silero_vad() -> bool:
@@ -72,13 +73,6 @@ def __support_silero_vad() -> bool:
         return False
     else:
         return SUPPORT_CUDA
-
-def __choice_vad() -> list[str]:
-    r = [ VAD_VALUE_GOOGLE ]
-    if __support_silero_vad():
-        r.append(VAD_VALUE_SILERO)
-
-    return r
 
 class Console(Enum):
     Bold = "\033[1m"
@@ -190,6 +184,9 @@ METHOD_VALUE_GOOGLE_MIX = "google_mix"
 DEFALUT_METHOD_VALUE = __default_method_value()
 ARG_CHOICE_METHOD = __choice_method()
 
+TRANSLATE_VALUE_WHISPER_KOTOBA = "kotoba_whisper"
+TRANSLATE_VALUE_GEMMA = "gemma"
+DEFALUT_TRANSLATE_VALUE = ""
 ARG_CHOICE_TRANSLATE = __choice_translate()
 
 SUBTITLE_VALUE_FILE = "file"
@@ -210,9 +207,12 @@ ARG_CHOICE_MIC_API = [
 MIC_SAMPLE_RATE = 16000
 MIC_SAMPLE_WIDTH = 2
 
-VAD_VALUE_GOOGLE = "google"
 VAD_VALUE_SILERO = "silero"
-ARG_CHOICE_VAD = __choice_vad()
+VAD_VALUE_YAMNET = "yamnet"
+ARG_CHOICE_VAD = [
+    VAD_VALUE_SILERO,
+    VAD_VALUE_YAMNET,
+]
 
 OUT_VALUE_PRINT = "print"
 OUT_VALUE_YUKARINETTE = "yukarinette"

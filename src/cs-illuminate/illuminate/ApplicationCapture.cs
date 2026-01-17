@@ -11,6 +11,7 @@ using NAudio.Wave;
 using System.Threading;
 using System.Drawing;
 
+
 namespace Haru.Kei;
 internal class ApplicationCapture {
 
@@ -146,11 +147,13 @@ internal class ApplicationCapture {
 	private DateTime? speakEndTime = default;
 	private readonly AutoResetEvent speakWait = new(false);
 
-	private int pauseSec;
+	private readonly double silenceSec;
+	private readonly int pauseSec;
 
-	private ApplicationCapture(AudioClient audioClient, float pauseSec) {
+	private ApplicationCapture(AudioClient audioClient, Models.AudioCaptureParam param) {
 		this.audioClient = audioClient;
-		this.pauseSec = (int)(pauseSec * 1000);
+		this.silenceSec = param.SilenceSec;
+		this.pauseSec = (int)(param.PauseSec * 1000);
 	}
 
 	private static bool s_initilized = false;
@@ -174,7 +177,7 @@ internal class ApplicationCapture {
 		s_initilized = true;
 	}
 
-	public static async Task<ApplicationCapture?> Get(int pid, float pauseSec = 0.75f) {
+	public static async Task<ApplicationCapture?> Get(int pid, Models.AudioCaptureParam param) {
 		if (pid == 0) {
 			return null;
 		}
@@ -184,7 +187,7 @@ internal class ApplicationCapture {
 		ev.Reset();
 		var audioClient = AudioCapture.Initilize(pid);
 		if(audioClient != null) {
-			capture = new ApplicationCapture(audioClient, pauseSec);
+			capture = new ApplicationCapture(audioClient, param);
 			capture.waveFormat = new WaveFormat(
 				rate: 16000,
 				bits: 16,
@@ -258,60 +261,76 @@ internal class ApplicationCapture {
 			captureState = CaptureState.Capturing;
 		}
 
-		while(captureState == CaptureState.Capturing) {
-			frameEventWaitHandle?.WaitOne(timeout, exitContext: false);
-
-			if(!ReadNextPacket(audioCaptureClient, (rms) => {
-				if(rms) {
-					if(speakStartTime.HasValue) {
-						if(100 < (DateTime.Now - speakStartTime.Value).TotalMilliseconds) {
-							return true;
+		try {
+			var total = 0d;
+			while (captureState == CaptureState.Capturing) {
+				var f = frameEventWaitHandle?.WaitOne(timeout, exitContext: false);
+				var silence = false;
+				if (!ReadNextPacket(audioCaptureClient, (sec, rms) => {
+					total += sec;
+					if (rms) {
+						if (speakStartTime.HasValue) {
+							if (100 < (DateTime.Now - speakStartTime.Value).TotalMilliseconds) {
+								return true;
+							}
+						} else {
+							speakStartTime = DateTime.Now;
 						}
 					} else {
-						speakStartTime = DateTime.Now;
-					}
-				} else {
-					speakStartTime = null;
-				}
-				return false;
-			})) {
-				break;
-			}
-
-			if(captureState != CaptureState.Capturing) {
-				return;
-			}
-		}
-
-		while(captureState == CaptureState.Capturing) {
-			frameEventWaitHandle?.WaitOne(timeout, exitContext: false);
-
-			if(!ReadNextPacket(audioCaptureClient, (rms) => {
-				if(!rms) {
-					if(speakEndTime.HasValue) {
-						if(this.pauseSec < (DateTime.Now - speakEndTime.Value).TotalMilliseconds) {
+						speakStartTime = null;
+						if(this.silenceSec < total) {
+							silence = true;
 							return true;
 						}
-					} else {
-						speakEndTime = DateTime.Now;
 					}
-				} else {
-					speakEndTime = null;
+					return false;
+				})) {
+					break;
 				}
-				return false;
-			})) {
-				break;
+
+				if (silence) {
+					return;
+				}
+
+				if (captureState != CaptureState.Capturing) {
+					return;
+				}
 			}
 
-			if(captureState != CaptureState.Capturing) {
-				break;
+			while (captureState == CaptureState.Capturing) {
+				frameEventWaitHandle?.WaitOne(timeout, exitContext: false);
+
+				if (!ReadNextPacket(audioCaptureClient, (_, rms) => {
+					if (!rms) {
+						if (speakEndTime.HasValue) {
+							if (this.pauseSec < (DateTime.Now - speakEndTime.Value).TotalMilliseconds) {
+								return true;
+							}
+						} else {
+							speakEndTime = DateTime.Now;
+						}
+					} else {
+						speakEndTime = null;
+					}
+					return false;
+				})) {
+					break;
+				}
+
+				if (captureState != CaptureState.Capturing) {
+					return;
+				}
 			}
 		}
-		speakWait.Set();
+		finally {
+			speakWait.Set();
+		}
 	}
 
 
-	private bool ReadNextPacket(AudioCaptureClient capture, Func<bool, bool> speakCheck) {
+	private bool ReadNextPacket(AudioCaptureClient capture, Func<double, bool, bool> speakCheck) {
+		System.Diagnostics.Debug.Assert(waveFormat is not null);
+
 		int nextPacketSize = capture.GetNextPacketSize();
 		while((nextPacketSize != 0) && (captureState == CaptureState.Capturing)) {
 			var buffer = capture.GetBuffer(
@@ -324,7 +343,10 @@ internal class ApplicationCapture {
 			Marshal.Copy(buffer, this.recodeBytes, 0, size);
 			capture.ReleaseBuffer(numFramesToRead);
 			nextPacketSize = capture.GetNextPacketSize();
-			if(speakCheck(Rms(this.recodeBytes.Take(size)))) {
+			if(speakCheck(
+				((double)numFramesToRead) / waveFormat.SampleRate,
+				Rms(this.recodeBytes.Take(size)))) {
+
 				return false;
 			}
 		}

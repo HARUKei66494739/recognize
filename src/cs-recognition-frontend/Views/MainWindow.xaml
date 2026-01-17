@@ -107,9 +107,16 @@
                         </TextBlock>
                         <ComboBox
                             Grid.Column="3" Grid.Row="0"
+                            DisplayMemberPath="Name"
                             ItemsSource="{Binding ConfigBinder.TranscribeModelsBinder, Mode=OneWay}"
                             SelectedIndex="{Binding ConfigBinder.TranscribeModeIndex.Value, Mode=TwoWay}"
-                            />
+                            >
+                            <ComboBox.ItemContainerStyle>
+                                <Style TargetType="{x:Type ComboBoxItem}">
+                                    <Setter Property="IsEnabled" Value="{Binding Enabled.Value}"/>
+                                </Style>
+                            </ComboBox.ItemContainerStyle>
+                        </ComboBox>
 
                         <TextBlock
                             Grid.Column="0" Grid.Row="2"
@@ -233,6 +240,8 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="12" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="24" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="12" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="24" />
@@ -323,24 +332,6 @@
                         <TextBlock
                             Grid.Column="0" Grid.Row="6"
                             FontSize="{DynamicResource YsrFontSize}">
-                            <Run Text="雑音判定の積極性" />
-                            <Run
-                                Foreground="{DynamicResource YspInfoBrush}"
-                                BaselineAlignment="Bottom"
-                                FontFamily="{StaticResource SymbolFont}"
-                                Text="{StaticResource FontSymbolInfo}"
-                                ToolTip="VADフィルタの強度を設定します。数値が大きくなるほど積極的に雑音判定します" />
-                        </TextBlock>
-                        <ComboBox
-                            Grid.Column="3" Grid.Row="6"
-                            FontSize="{DynamicResource YsrFontSize}"
-                            ItemsSource="{Binding ConfigBinder.VadGoogleParamatersBinder, Mode=OneWay}"
-                            SelectedIndex="{Binding ConfigBinder.VadGoogleParamaterIndex.Value, Mode=TwoWay}"
-                            />
-
-                        <TextBlock
-                            Grid.Column="0" Grid.Row="8"
-                            FontSize="{DynamicResource YsrFontSize}">
                             <Run Text="HPFの強さ" />
                             <Run
                                 Foreground="{DynamicResource YspInfoBrush}"
@@ -350,12 +341,56 @@
                                 ToolTip="HPFフィルタの強度を設定します。google音声認識を使用する場合無効を推奨します" />
                         </TextBlock>
                         <ComboBox
-                            Grid.Column="3" Grid.Row="8"                            
+                            Grid.Column="3" Grid.Row="6"                            
                             FontSize="{DynamicResource YsrFontSize}"
                             ItemsSource="{Binding ConfigBinder.HpfParamatersBinder, Mode=OneWay}"
                             SelectedIndex="{Binding ConfigBinder.HpfParamaterIndex.Value, Mode=TwoWay}"
                             />
-                        <Grid Grid.Column="3" Grid.Row="10" HorizontalAlignment="Right">
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="8"
+                            FontSize="{DynamicResource YsrFontSize}">
+                            <Run Text="音声検出方法" />
+                        </TextBlock>
+                        <ComboBox
+                            Grid.Column="3" Grid.Row="8"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            ItemsSource="{Binding ConfigBinder.VadMethodsBinder, Mode=OneWay}"
+                            SelectedIndex="{Binding ConfigBinder.VadMethodsIndex.Value, Mode=TwoWay}"
+                            />
+
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="10"
+                            Visibility="{Binding ConfigBinder.VadSileroOptionVisibility.Value, Mode=OneWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="Sielo VAD閾値" />
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="音声検出の閾値を設定します。0.0～1.0の間で指定してください。0に近づくほど厳しく判定します。初期値は0.5です" />
+                        </TextBlock>
+                        <TextBlock
+                            Grid.Column="2" Grid.Row="10"
+                            Margin="4,0,4,0"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource YspErrorBrush}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            FontFamily="{StaticResource SymbolFont}" 
+                            Text="{StaticResource FontSymbolStatusErrorFull}"
+                            Visibility="{Binding ConfigBinder.VadSileroThresholdError.Value, Mode=OneWay}"
+                            />
+                        <TextBox
+                            Grid.Column="3" Grid.Row="10" 
+                            Visibility="{Binding ConfigBinder.VadSileroOptionVisibility.Value, Mode=OneWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Text="{Binding ConfigBinder.VadSileroThresholdBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            />
+
+                        <Grid Grid.Column="3" Grid.Row="12" HorizontalAlignment="Right">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="92" />
                                 <ColumnDefinition Width="8" />
@@ -504,6 +539,8 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="8" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="24" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
@@ -587,9 +624,22 @@
                             FontSize="{DynamicResource YsrFontSize}"
                             Text="{Binding ConfigBinder.ObsSubtitleTextEnBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
+                        <CheckBox
+                            Grid.Column="3" Grid.Row="8"
+                            HorizontalAlignment="Left"
+                            IsChecked="{Binding ConfigBinder.ObsSubtitleTextStartsWithBinder.Value, Mode=TwoWay}"
+                            >
+                            <CheckBox.Content>
+                                <TextBlock
+                                    FontSize="{DynamicResource YsrFontSize}"
+                                    >
+                                    <Run Text="指定されたソース名と先頭が一致するOBSテキストソースを全て更新" />
+                                </TextBlock>
+                            </CheckBox.Content>
+                        </CheckBox>
 
                         <TextBlock
-                            Grid.Column="0" Grid.Row="8"
+                            Grid.Column="0" Grid.Row="10"
                             FontSize="{DynamicResource YsrFontSize}"
                             >
                             <Run Text="Webソケットポート" />
@@ -601,7 +651,7 @@
                                 ToolTip="OBSのWeb Socketポートを指定します" />                        
                         </TextBlock>
                         <TextBlock
-                            Grid.Column="2" Grid.Row="8"
+                            Grid.Column="2" Grid.Row="10"
                             Margin="4,0,4,0"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
@@ -612,13 +662,13 @@
                             Visibility="{Binding ConfigBinder.ObsSubtitlePortError.Value, Mode=OneWay}"
                             />
                         <TextBox
-                            Grid.Column="3" Grid.Row="8"                            
+                            Grid.Column="3" Grid.Row="10"                            
                             FontSize="{DynamicResource YsrFontSize}"
                             Text="{Binding ConfigBinder.ObsSubtitlePortBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
 
                         <TextBlock
-                            Grid.Column="0" Grid.Row="10"
+                            Grid.Column="0" Grid.Row="12"
                             FontSize="{DynamicResource YsrFontSize}"
                             >
                             <Run Text="Webソケットパスワード" />
@@ -630,13 +680,13 @@
                                 ToolTip="OBSのWeb Socketパスワードを指定します" />                        
                         </TextBlock>
                         <TextBox
-                            Grid.Column="3" Grid.Row="10"                            
+                            Grid.Column="3" Grid.Row="12"                            
                             FontSize="{DynamicResource YsrFontSize}"
                             Text="{Binding ConfigBinder.ObsSubtitlePasswordBinder.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
 
                         <CheckBox
-                            Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="12"
+                            Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="14"
                             HorizontalAlignment="Left"
                             IsChecked="{Binding ConfigBinder.IsUsedVrcSubtitleBinder.Value, Mode=TwoWay}"
                             >
@@ -693,8 +743,10 @@
                             SelectedIndex="{Binding ConfigBinder.IlluminateVoiceIndex.Value, Mode=TwoWay}"
                             />
 
+                        <!-- ボイロ系オプション -->
                         <TextBlock
                             Grid.Column="0" Grid.Row="4"
+                            Visibility="{Binding ConfigBinder.IlluminateOptionVoiceRoidVisibility.Value, Mode=OneWay}"
                             FontSize="{DynamicResource YsrFontSize}"
                             >
                             <Run Text="合成音声パス" />
@@ -707,11 +759,13 @@
                         </TextBlock>
                         <TextBox
                             Grid.Column="3" Grid.Row="4"
+                            Visibility="{Binding ConfigBinder.IlluminateOptionVoiceRoidVisibility.Value, Mode=OneWay}"
                             FontSize="{DynamicResource YsrFontSize}"
                             Text="{Binding ConfigBinder.IlluminateClientBinding.Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             />
                         <Button
                             Grid.Column="4" Grid.Row="4"
+                            Visibility="{Binding ConfigBinder.IlluminateOptionVoiceRoidVisibility.Value, Mode=OneWay}"
                             FontSize="{DynamicResource YsrFontSize}"
                             Content="選択"
                             >
@@ -726,6 +780,35 @@
                                                 MultiSelect="False"/>
                                         </l:DirectInteractionMessage>
                                     </l:OpenFileDialogInteractionMessageAction>
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                        </Button>
+
+
+                        <!-- CeVio系オプション -->
+                        <TextBlock
+                            Grid.Column="0" Grid.Row="4"
+                            Visibility="{Binding ConfigBinder.IlluminateOptionCeVioVisibility.Value, Mode=OneWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            >
+                            <Run Text="CeVioオプション" />
+                            <!--
+                            <Run
+                                Foreground="{DynamicResource YspInfoBrush}"
+                                BaselineAlignment="Bottom"
+                                FontFamily="{StaticResource SymbolFont}"
+                                Text="{StaticResource FontSymbolInfo}"
+                                ToolTip="使用する合成音声クライアントのexeファイルを指定します" />
+                            -->
+                        </TextBlock>
+                        <Button
+                            Grid.Column="4" Grid.Row="4"
+                            Visibility="{Binding ConfigBinder.IlluminateOptionCeVioVisibility.Value, Mode=OneWay}"
+                            FontSize="{DynamicResource YsrFontSize}"
+                            Content="オプション"
+                            >
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="Click">
                                 </i:EventTrigger>
                             </i:Interaction.Triggers>
                         </Button>

@@ -18,6 +18,7 @@ google.recognize_google = google.recognize_google_requests
 google.recognize_google_duplex = google.recognize_google_duplex_requests
 
 import os
+import logging as __logging
 def is_prod_or_debug() -> bool:
     '''
     exe化の際に__init.py__が実行されるので判定する
@@ -41,7 +42,12 @@ def _root_path() -> tuple[str, str]:
         return (__root, proj_root)
 
 
+# tensorflow のWARNINGがimport時点で走るものがあるので先行して抑制する
+__logging.getLogger("tensorflow").setLevel(__logging.ERROR)
+
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 from typing import Any, Callable, Iterable, Optional, NamedTuple, Literal
 import src.val as val
@@ -286,11 +292,10 @@ ilm_logger:Logger = Logger.init_system(ilm_enviroment.verbose, ilm_enviroment.ro
 
 import ctypes
 if ilm_enviroment.is_exe:
-    import os
-    os.add_dll_directory(ilm_enviroment.project_root)
+    pass
 else:
     import os
-    os.add_dll_directory(f"{ilm_enviroment.project_root}{os.sep}c")
+    os.add_dll_directory(f"{ilm_enviroment.project_root}{os.sep}src{os.sep}c")
 
 _mm_attach_callback1_t = ctypes.WINFUNCTYPE(None, ctypes.c_int32, ctypes.c_int32, ctypes.c_wchar_p, ctypes.c_wchar_p)
 _mm_attach_callback2_t = ctypes.WINFUNCTYPE(None, ctypes.c_wchar_p, ctypes.c_wchar_p)

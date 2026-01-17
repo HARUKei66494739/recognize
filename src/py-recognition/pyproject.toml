@@ -1,3 +1,6 @@
 [tool.pyright]
 include = ["src"]
 exclude = []
+
+[project.entry-points.pyinstaller40]
+hook-dirs = "src.__pyinstaller:get_hook_dirs"
