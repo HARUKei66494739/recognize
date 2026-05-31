@@ -25,7 +25,14 @@ class IlluminateException(Exception):
         内部例外がある場合内部例外
         """
         return self.__inner
-    
+
+class TmpError__(Exception):
+    """
+    ブロック抜けるための仮置き例外
+    """
+    pass
+
+
 class ProgramError(Exception):
     """
     この例外はプログラムバグなので投げられても処理しないこと

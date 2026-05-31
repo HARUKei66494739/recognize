@@ -41,7 +41,11 @@ if( -not $? ) {
     echo ソースコードの複製に失敗しました
     exit 1
 }
-
+Copy-Item -Path .\patch -Destination .\.build\patch -Recurse
+if( -not $? ) {
+    echo パッチファイルの複製に失敗しました
+    exit 1
+}
 
 pushd .build
 
@@ -82,6 +86,12 @@ if( -not $? ) {
     popd
     exit 1
 }
+echo ok
+echo ""
+
+echo パッチ処理を行います
+./patch/tensorflow_hub.ps1
+./patch/webrtcvad.ps1
 echo ok
 echo ""
 
@@ -127,7 +137,7 @@ if( -not $? ) {
     echo アーカイブの移動に失敗しました
     exit 1
 }
-
+exit
 echo 作業ディレクトリを削除します
 Remove-Item  -path .build -recurse
 if( -not $? ) {

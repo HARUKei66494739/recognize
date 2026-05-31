@@ -223,6 +223,7 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 				System.Threading.Thread.Sleep(1000);
 			}
 
+			this.InspectVoiceRoid2();
 			this.FocusVoiceRoid2();
 			// 5回試行する
 			for (var i = 0; i < 5; i++) {
@@ -269,7 +270,7 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 
 	/// <summary>ボイロ2エディタのテキストボックスに強引にフォーカスを移す</summary>
 	private void FocusVoiceRoid2() {
-		if (this.textBox != null) {
+		if (this.textBox is { }) {
 			this.textBox.Ptr.accLocation(
 				out int pxLeft,
 				out int pyTop,
@@ -280,11 +281,42 @@ public class VoiceRoid2 : VoiceRoid<AudioCaptreStart, NopVoiceObject> {
 				x = pxLeft,
 				y = pyTop,
 			};
+
 			Interop.ScreenToClient(hTargetWindow, ref pt);
 			Util.PlatformClick(
 				this.hTargetWindow,
 				pt.x + 4,
 				pt.y + 4);
+		}
+	}
+
+	/// <summary>ボイロ2テキストボックスの情報をログに記載</summary>
+	private void InspectVoiceRoid2() {
+		static string fromRect(Interop.RECT r) => $"RECT=({r.left},{r.top},{r.right},{r.bottom}) SIZE=({r.right - r.left},{r.bottom - r.top})";
+		static string fromPosSize(int x, int y, int w, int h) => $"RECT=({x},{y},{x + w},{y + h}) SIZE=({w},{h})";
+
+		if (this.textBox is { }) {
+			this.textBox.Ptr.accLocation(
+				out int pxLeft,
+				out int pyTop,
+				out int pcxWidth,
+				out int pcyHeight,
+				0);
+			var pt = new Interop.POINT() {
+				x = pxLeft,
+				y = pyTop,
+			};
+			var wpc = new Interop.WINDOWPLACEMENT() {
+				length = System.Runtime.InteropServices.Marshal.SizeOf(typeof(Interop.WINDOWPLACEMENT))
+			};
+
+			Interop.GetWindowRect(hTargetWindow, out var rc);
+			Interop.GetWindowPlacement(hTargetWindow, ref wpc);
+			LogDebug($"ウインドウ情報：{fromRect(rc)}, showCmd={wpc.showCmd}");
+			LogDebug($"テキストボックス情報：{fromPosSize(pxLeft, pyTop, pcxWidth, pcyHeight)}");
+			LogDebug($"テキストボックス：スクリーン座標：({pt.x}, {pt.y})");
+			Interop.ScreenToClient(hTargetWindow, ref pt);
+			LogDebug($"テキストボックス：ウインドウ座標：({pt.x},{pt.y})");
 		}
 	}
 }

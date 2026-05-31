@@ -32,6 +32,8 @@ class CommandOptions {
 
 	[Option("log_dir", Required = false, HelpText = "-")]
 	public string LogDir { get; set; } = "";
+	[Option("log_rotate", Required = false, HelpText = "-")]
+	public bool LogRotate { get; set; }
 
 	[Option("wasapi_id", Required = false, HelpText = "-")]
 	public string WasapiId { get; set; } = "";

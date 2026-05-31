@@ -25,12 +25,14 @@ public class ConfigBinder : INotifyPropertyChanged {
 
 	private readonly (string Name, bool Enabled)[] TranscribeModels = [
 		("設定しない", true),
-		("AI音声認識", CanUsedCuda()),
+		("AI音声認識(Whisper)", CanUsedCuda()),
+		("AI音声認識(ReazonSpeech)", true),
 		("google音声認識", true),
 	];
 	public const int TranscribeIndexNull = 0;
-	public const int TranscribeIndexAi = 1;
-	public const int TranscribeIndexGoogle = 2;
+	public const int TranscribeIndexAiWhisper = 1;
+	public const int TranscribeIndexAiReasonSpeech = 2;
+	public const int TranscribeIndexGoogle = 3;
 	private readonly string[] TranslateModels = {
 		"設定しない",
 		"AI翻訳",
@@ -71,12 +73,14 @@ public class ConfigBinder : INotifyPropertyChanged {
 	public const int VoiceIndexCeVioAi = 6;
 	private readonly string[] VadMethods = {
 		"設定しない",
+		"WebRTC",
 		"Silero VAD",
 		"YAMNet",
 	};
 	public const int VadMethodIndexNone = 0;
-	public const int VadMethodIndexSilero = 1;
-	public const int VadMethodIndexYAMNet = 2;
+	public const int VadMethodIndexWebRTC = 1;
+	public const int VadMethodIndexSilero = 2;
+	public const int VadMethodIndexYAMNet = 3;
 
 	// モデル
 	public ReactiveCollection<TranscribeItem> TranscribeModelsBinder { get; }
@@ -147,12 +151,14 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.TranscribeModelsBinder = new();
 		this.TranscribeModelsBinder.AddRangeOnScheduler(TranscribeModels.Select(x => new TranscribeItem(x.Name, x.Enabled)));
 		this.TranscribeModeIndex = new(initialValue: config.TranscribeModel switch {
-			"kotoba_whisper" => TranscribeIndexAi,
+			"kotoba_whisper" => TranscribeIndexAiWhisper,
+			"reazon" => TranscribeIndexAiReasonSpeech,
 			"google_mix" => TranscribeIndexGoogle,
 			_ => TranscribeIndexNull
 		});
 		this.TranscribeModeIndex.Subscribe(x => config.TranscribeModel = x switch {
-			TranscribeIndexAi => "kotoba_whisper",
+			TranscribeIndexAiWhisper => "kotoba_whisper",
+			TranscribeIndexAiReasonSpeech => "reazon",
 			TranscribeIndexGoogle => "google_mix",
 			_ => ""
 		});
@@ -224,6 +230,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 		this.VadMethodsBinder = new();
 		this.VadMethodsBinder.AddRangeOnScheduler(this.VadMethods);
 		this.VadMethodsIndex = new(initialValue: config.Vad switch {
+			"webrtc" => VadMethodIndexWebRTC,
 			"silero" => VadMethodIndexSilero,
 			"yamnet" => VadMethodIndexYAMNet,
 
@@ -232,6 +239,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 			_ => VadMethodIndexNone
 		});
 		this.VadMethodsIndex.Subscribe(x => config.Vad = x switch {
+			VadMethodIndexWebRTC => "webrtc",
 			VadMethodIndexSilero => "silero",
 			VadMethodIndexYAMNet => "yamnet",
 			_ => null
@@ -242,7 +250,7 @@ public class ConfigBinder : INotifyPropertyChanged {
 		});
 		this.VadSileroOptionVisibility = this.VadMethodsIndex
 			.Select(x => x switch {
-				1 => Visibility.Visible,
+				VadMethodIndexSilero => Visibility.Visible,
 				_ => Visibility.Hidden,
 			}).ToReadOnlyReactivePropertySlim();
 		this.MicrophoneThresholdDbError = this.MicrophoneThresholdDbBinder

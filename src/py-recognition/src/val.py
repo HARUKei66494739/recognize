@@ -5,7 +5,6 @@ from enum import Enum
 import importlib.util
 import ctypes
 
-
 def __is_available_cuda():
     try:
         cuda_device_count = ctypes.c_uint32()
@@ -42,6 +41,12 @@ def __support_whisper_kotoba() -> bool:
     else:
         return True
 
+def __support_moonshine_voice() -> bool:
+    if importlib.util.find_spec("moonshine_voice") is None:
+        return False
+    else:
+        return True
+
 
 def __default_method_value() -> str:
     if __support_whisper_faster():
@@ -59,12 +64,21 @@ def __choice_method() -> list[str]:
     if SUPPORT_LIB_WHISPER_KOTOBA:
         r.append(METHOD_VALUE_WHISPER_KOTOBA)
 
-    return r + [METHOD_VALUE_GOOGLE, METHOD_VALUE_GOOGLE_DUPLEX, METHOD_VALUE_GOOGLE_MIX]
+    r.append(METHOD_VALUE_GOOGLE)
+    r.append(METHOD_VALUE_GOOGLE_DUPLEX)
+    r.append(METHOD_VALUE_GOOGLE_MIX)
+
+    if SUPPORT_MOONSHINE_VOICE:
+        r.append(METHOD_VALUE_MOONSHINE)
+    r.append(METHOD_VALUE_REAZON_SPEECH)
+    return r
+
 
 def __choice_translate() -> list[str]:
     r = [ "" ]
     if SUPPORT_LIB_WHISPER_KOTOBA:
-        r.append(METHOD_VALUE_WHISPER_KOTOBA)
+        r.append(TRANSLATE_VALUE_WHISPER_KOTOBA)
+        r.append(TRANSLATE_VALUE_GEMMA)
     return r
 
 def __support_silero_vad() -> bool:
@@ -142,6 +156,7 @@ SUPPORT_LIB_WHISPER = __support_whisper()
 SUPPORT_LIB_WHISPER_FASTER = __support_whisper_faster()
 SUPPORT_LIB_WHISPER_KOTOBA = __support_whisper_kotoba()
 SUPPORT_WHISPER = SUPPORT_LIB_WHISPER or SUPPORT_LIB_WHISPER_FASTER or SUPPORT_LIB_WHISPER_KOTOBA
+SUPPORT_MOONSHINE_VOICE = __support_moonshine_voice()
 
 VERBOSE_MIN = 0
 VERBOSE_INFO = 1
@@ -174,15 +189,29 @@ ARG_CHOICE_TEST = [
     TEST_VALUE_ILLUMINATE,
 ]
 
+
+MODE_VALUE_BUILT_IN = "builtin"
+MODE_VALUE_BROWSER = "browser"
+MODE_VALUE_DEFAULT = MODE_VALUE_BUILT_IN
+ARG_CHOICE_MODE = [
+    MODE_VALUE_BUILT_IN,
+    MODE_VALUE_BROWSER,
+]
+
 METHOD_VALUE_WHISPER = "whisper"
 METHOD_VALUE_WHISPER_FASTER = "faster_whisper"
 METHOD_VALUE_WHISPER_KOTOBA = "kotoba_whisper"
 METHOD_VALUE_GOOGLE= "google"
 METHOD_VALUE_GOOGLE_DUPLEX = "google_duplex"
 METHOD_VALUE_GOOGLE_MIX = "google_mix"
+METHOD_VALUE_MOONSHINE = "moonshine"
+METHOD_VALUE_REAZON_SPEECH = "reazon"
 DEFALUT_METHOD_VALUE = __default_method_value()
 ARG_CHOICE_METHOD = __choice_method()
 
+TRANSLATE_VALUE_WHISPER_KOTOBA = "kotoba_whisper"
+TRANSLATE_VALUE_GEMMA = "gemma"
+DEFALUT_TRANSLATE_VALUE = ""
 ARG_CHOICE_TRANSLATE = __choice_translate()
 
 SUBTITLE_VALUE_FILE = "file"
@@ -203,12 +232,25 @@ ARG_CHOICE_MIC_API = [
 MIC_SAMPLE_RATE = 16000
 MIC_SAMPLE_WIDTH = 2
 
+VAD_VALUE_WEBRTC = "webrtc"
 VAD_VALUE_SILERO = "silero"
 VAD_VALUE_YAMNET = "yamnet"
+VAD_VALUE_DEFAULT = VAD_VALUE_WEBRTC
 ARG_CHOICE_VAD = [
+    VAD_VALUE_WEBRTC,
     VAD_VALUE_SILERO,
     VAD_VALUE_YAMNET,
 ]
+
+
+CHROME_RECOG_PROC_WEB = "web"
+CHROME_RECOG_PROC_LOCAL = "local"
+CHROME_RECOG_PROC_DEFAULT = CHROME_RECOG_PROC_LOCAL
+ARG_CHOICE_CHROME_RECOG_PROC = [
+    CHROME_RECOG_PROC_WEB,
+    CHROME_RECOG_PROC_LOCAL,
+]
+
 
 OUT_VALUE_PRINT = "print"
 OUT_VALUE_YUKARINETTE = "yukarinette"
@@ -226,6 +268,34 @@ ARG_CHOICE_OUT = [
     OUT_VALUE_FILE,
     OUT_VALUE_VRC,
 ]
+
+
+HTTP_PORT = 40426
+RESOURCE_RECOGNIZE_HTML = "src/resources/html.dat"
+
+def get_localhost_address() -> str:
+    import socket
+    if socket.has_ipv6:
+        return "::1"
+    else:
+        return "127.0.0.1"
+
+
+def get_recognize_html() -> str:
+    from src import ilm_enviroment
+    import os
+
+    if ilm_enviroment.is_exe:
+        return os.path.join(
+            ilm_enviroment.project_root,
+            "_internal",
+            RESOURCE_RECOGNIZE_HTML)
+
+    else:
+        return os.path.join(
+            ilm_enviroment.project_root,
+            RESOURCE_RECOGNIZE_HTML)
+
 
 LANGUAGE_CODES = [
     "",

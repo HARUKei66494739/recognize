@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="illuminate/illuminate.csproj" />
+  <Project Path="VoiceLink/VoiceLink.csproj" />
+</Solution>

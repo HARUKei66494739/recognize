@@ -172,6 +172,7 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
             notify_icon:bool,
             debug:bool,
             capture_pause:float,
+            ext_args:str,
             cancel:CancellationObject):
         super().__init__( f"ws://{host}:{port}", "Illuminate")
         self.__cancel = cancel
@@ -192,6 +193,8 @@ class IlluminateSpeechOutputer(WebSocketOutputer):
             args.append("--kana")
         if debug:
             args.append("--debug")
+        if len(ext_args):
+            args.append(ext_args)
         subprocess.Popen(args)
 
     def output(self, text_ja:str, text_en:str) -> str:

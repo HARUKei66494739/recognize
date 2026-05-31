@@ -6,18 +6,15 @@ import speech_recognition as sr
 import urllib.error as urlerr
 import requests.exceptions
 import concurrent.futures
-from typing import Any, NamedTuple, Callable
+from typing import Any, NamedTuple, Callable, Iterator
 
+import src.interface as inf
 import src.exception as ex
 import src.google_recognizers as google
+import src.val
 
+from src.lazy_loader import whisper, faster_whisper, transformers, torch, moonshine_voice
 
-class TranscribeResult(NamedTuple):
-    """
-    RecognitionModel#transcribeの戻り値データ型
-    """
-    transcribe:str
-    extend_data:Any
 
 class GoogleTranscribeExtend(NamedTuple):
     """
@@ -47,14 +44,14 @@ class RecognizeMicrophoneConfig:
         return self.__tail_insert_duration
 
 
-class WhisperMicrophoneConfig(RecognizeMicrophoneConfig):
+class DefaultMicrophoneConfig(RecognizeMicrophoneConfig):
     __DEFAULT_HEAD_DULATION = 0.
     __DEFAULT_TAIL_DULATION = 0.
 
     def __init__(self, head_insert_duration:float | None = None, tail_insert_duration:float | None = None) -> None:
         super().__init__(
-            head_insert_duration if not head_insert_duration is None else WhisperMicrophoneConfig.__DEFAULT_HEAD_DULATION,
-            tail_insert_duration if not tail_insert_duration is None else WhisperMicrophoneConfig.__DEFAULT_TAIL_DULATION)
+            head_insert_duration if not head_insert_duration is None else DefaultMicrophoneConfig.__DEFAULT_HEAD_DULATION,
+            tail_insert_duration if not tail_insert_duration is None else DefaultMicrophoneConfig.__DEFAULT_TAIL_DULATION)
 
 class GoogleMicrophoneConfig(RecognizeMicrophoneConfig):
     __DEFAULT_HEAD_DULATION = 0.2
@@ -65,27 +62,18 @@ class GoogleMicrophoneConfig(RecognizeMicrophoneConfig):
             head_insert_duration if not head_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_HEAD_DULATION,
             tail_insert_duration if not tail_insert_duration is None else GoogleMicrophoneConfig.__DEFAULT_TAIL_DULATION)
 
+class ReazonSpeechMicrophoneConfig(RecognizeMicrophoneConfig):
+    __DEFAULT_HEAD_DULATION = 0.3
+    __DEFAULT_TAIL_DULATION = 0.
 
-class RecognitionModel:
-    """
-    認識モデル抽象基底クラス
-    """
-
-    @property
-    def required_sample_rate(self) -> int | None:
-        ...
-
-    def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
-        ...
-
-    def get_verbose(self, verbose:int) -> str | None:
-        ...
-
-    def get_log_info(self) -> str | None:
-        ...
+    def __init__(self, head_insert_duration:float | None = None, tail_insert_duration:float | None = None) -> None:
+        super().__init__(
+            head_insert_duration if not head_insert_duration is None else ReazonSpeechMicrophoneConfig.__DEFAULT_HEAD_DULATION,
+            tail_insert_duration if not tail_insert_duration is None else ReazonSpeechMicrophoneConfig.__DEFAULT_TAIL_DULATION)
 
 
-class RecognitionModelGoogleApi(RecognitionModel):
+
+class RecognitionModelGoogleApi(inf.RecognitionModel):
     """
     google系認識モデルの基底クラス    
     """
@@ -116,7 +104,7 @@ class RecognitionModelGoogleApi(RecognitionModel):
     def get_log_info(self) -> str | None:
         return ""
 
-    def transcribe(self, audio_data:np.ndarray) -> TranscribeResult:
+    def transcribe(self, audio_data:np.ndarray) -> inf.TranscribeResult:
         flac = google.encode_falc(
             sr.AudioData(audio_data.astype(np.int16, order="C"), self.__sample_rate, self.__sample_width),
             None if not self.__convert_sample_rete else 16000)
@@ -126,7 +114,7 @@ class RecognitionModelGoogleApi(RecognitionModel):
         while loop < self.__max_loop:
             try:
                 r = self._transcribe_impl(flac)
-                return TranscribeResult(r.transcribe, GoogleTranscribeExtend(r.extend_data, his))
+                return inf.TranscribeResult(r.transcribe, GoogleTranscribeExtend(r.extend_data, his))
             except urlerr.HTTPError as e:
                 if (e.code == 500) and (1 < self.__max_loop):
                     his.append(e)
@@ -168,7 +156,7 @@ class RecognitionModelGoogleApi(RecognitionModel):
         clazz = ",".join([f"{type(i)}"for i in his])
         raise TranscribeException(f"{self.__max_loop}回試行しましたが失敗しました({clazz}])")
  
-    def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
+    def _transcribe_impl(self, flac:google.EncodeData) -> inf.TranscribeResult:
         ...
 
 class RecognitionModelGoogle(RecognitionModelGoogleApi):
@@ -191,14 +179,14 @@ class RecognitionModelGoogle(RecognitionModelGoogleApi):
         else:
             self.__profanity_filter = 0
 
-    def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
+    def _transcribe_impl(self, flac:google.EncodeData) -> inf.TranscribeResult:
         r = google.recognize_google(
             flac,
             self._operation_timeout,
             self._key,
             self._language,
             self.__profanity_filter)
-        return TranscribeResult(r.transcript, r.raw_data)
+        return inf.TranscribeResult(r.transcript, r.raw_data)
 
 
 class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
@@ -256,7 +244,7 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
     def get_log_info(self) -> str | None:
         return f"current parallel num = {self.__parallel}"
 
-    def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
+    def _transcribe_impl(self, flac:google.EncodeData) -> inf.TranscribeResult:
         class Extend(NamedTuple):
             exceptions:list[Exception]
             raw_data:str
@@ -266,7 +254,7 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
                     return f"{self.raw_data}{os.linesep}{len(self.exceptions)}回の失敗:{os.linesep}{f'{os.linesep}'.join(map(lambda x: f'{type(x)}:{x}', self.exceptions))}"
                 else:
                     return f"{self.raw_data}"
-        def func(index:int = 0, delay_ratio=0.1) -> TranscribeResult:
+        def func(index:int = 0, delay_ratio=0.1) -> inf.TranscribeResult:
             if RecognitionModelGoogleDuplex.__MIN_PARALLEL < index:
                 # 増加スレッドは遅延させてから実行する
                 wait = math.ceil(index / RecognitionModelGoogleDuplex.__MIN_PARALLEL) - 1
@@ -278,7 +266,7 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
                 self._key,
                 self._language,
                 self.__profanity_filter)
-            return TranscribeResult(r.transcript, r.raw_data)
+            return inf.TranscribeResult(r.transcript, r.raw_data)
 
         if self.__is_parallel_run:
             thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=self.__parallel)
@@ -292,7 +280,7 @@ class RecognitionModelGoogleDuplex(RecognitionModelGoogleApi):
                         if(self.__parallel_reduce_count < self.__parallel_successed):
                             self.__parallel_successed = 0
                             self.__parallel = max(self.__parallel - 1, RecognitionModelGoogleDuplex.__MIN_PARALLEL)
-                        return TranscribeResult(r.transcribe, Extend(ex, f"{r.extend_data}"))
+                        return inf.TranscribeResult(r.transcribe, Extend(ex, f"{r.extend_data}"))
                     except Exception as e:
                         ex.append(e)
 
@@ -366,10 +354,10 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
     def get_log_info(self) -> str | None:
         return f"current parallel num = ({ self.__parallel_recognize}, {self.__parallel__duplex})"
 
-    def _transcribe_impl(self, flac:google.EncodeData) -> TranscribeResult:
+    def _transcribe_impl(self, flac:google.EncodeData) -> inf.TranscribeResult:
         class FutureResult(NamedTuple):
             api_no:int
-            result:TranscribeResult
+            result:inf.TranscribeResult
 
         class Extend(NamedTuple):
             exceptions:list[Exception]
@@ -395,7 +383,7 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
                 self._key,
                 self._language,
                 self.__profanity_filter)
-            return FutureResult(RecognitionModelGoogleMix.API_RECOGNIZE, TranscribeResult(r.transcript, r.raw_data))
+            return FutureResult(RecognitionModelGoogleMix.API_RECOGNIZE, inf.TranscribeResult(r.transcript, r.raw_data))
 
         def func_duplex(index:int = 0, delay_ratio=0.1) -> FutureResult:
             if RecognitionModelGoogleMix.__MIN_PARALLEL_DUPLEX < index:
@@ -409,7 +397,7 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
                 self._key,
                 self._language,
                 self.__profanity_filter)
-            return FutureResult(RecognitionModelGoogleMix.API_DUPLEX, TranscribeResult(r.transcript, r.raw_data))
+            return FutureResult(RecognitionModelGoogleMix.API_DUPLEX, inf.TranscribeResult(r.transcript, r.raw_data))
 
 
         thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=self.__parallel__duplex + 2)
@@ -425,7 +413,7 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
                         if(self.__parallel_reduce_count__duplex < self.__parallel_successed__duplex):
                             self.__parallel_successed__duplex = 0
                             self.__parallel__duplex = max(self.__parallel__duplex - 1, RecognitionModelGoogleMix.__MIN_PARALLEL_DUPLEX)
-                    return TranscribeResult(r.result.transcribe, Extend(ex, r.api_no, f"{r.result.extend_data}"))
+                    return inf.TranscribeResult(r.result.transcribe, Extend(ex, r.api_no, f"{r.result.extend_data}"))
                 except Exception as e:
                     ex.append(e)
 
@@ -437,11 +425,26 @@ class RecognitionModelGoogleMix(RecognitionModelGoogleApi):
         finally:
             thread_pool.shutdown(wait=False)
 
-class TranscribeException(ex.IlluminateException):
+class RecognitionModelChrome(inf.RecognitionModel):
     """
-    認識に失敗した際なげる例外
+    google系認識モデルの基底クラス    
     """
-    pass
+    def __init__(self):
+        pass
+
+    @property
+    def required_sample_rate(self) -> int | None:
+        return None
+
+    def get_verbose(self, verbose:int) -> str | None:
+        return None
+
+    def get_log_info(self) -> str | None:
+        return ""
+
+    def transcribe(self, audio_data:np.ndarray) -> inf.TranscribeResult:
+        return inf.TranscribeResult("", None)
+
 
 class ParallelTranscribeException(ex.IlluminateException):
     def __init__(self, message: str, exceptions:list[Exception]):
@@ -459,3 +462,364 @@ class ParallelTranscribeException(ex.IlluminateException):
     @property
     def is_error500(self) -> bool:
         return self.__is_error500
+
+
+
+if src.val.SUPPORT_LIB_WHISPER:
+    class RecognitionModelWhisper(inf.RecognitionModel):
+        """
+        認識モデルのwhisper実装
+        """
+        def __init__(
+            self,
+            model:str,
+            language:str,
+            device:str,
+            download_root:str) -> None:
+            self.__is_fp16 = device == "cuda"
+            self.__language = language if language != "" else None
+
+            m = f"{model}.{language}" if (model != "large") and (model != "large-v2") and (model != "large-v3") and (language == "en") else model
+            self.audio_model = whisper.load_model(m, download_root=download_root).to(device)
+
+        @property
+        def required_sample_rate(self) -> int | None:
+            return 16000
+
+        def get_verbose(self, verbose:int) -> str | None:
+            return None
+
+        def transcribe(self, audio_data:np.ndarray) -> inf.TranscribeResult:
+            r = self.audio_model.transcribe(
+                torch.from_numpy(audio_data.astype(np.float32) / float(np.iinfo(np.int16).max)),
+                language = self.__language,
+                fp16 = self.__is_fp16)["text"]
+            if isinstance(r, str):
+                return inf.TranscribeResult(r, None)
+            if isinstance(r, list):
+                return inf.TranscribeResult("".join(r), None)
+            raise ex.ProgramError(f"Whisper.transcribeから意図しない戻り値型:{type(r)}")
+
+        def get_log_info(self) -> str:
+            return ""
+
+
+if src.val.SUPPORT_LIB_WHISPER_FASTER:
+    class RecognitionModelWhisperFaster(inf.RecognitionModel):
+        """
+        認識モデルのfaster_whisper実装
+        """
+        def __init__(
+            self,
+            model:str,
+            language:str,
+            device:str,
+            device_index:int,
+            download_root:str) -> None:
+            self.__language = language if language != "" else None
+
+            def get(device:str) -> tuple[str, str]:
+                if device == "cuda":
+                    try:
+                        if torch.cuda.is_available():
+                            mj, mi = torch.cuda.get_device_capability()
+                            if 7 <= mj:
+                                return ("cuda", "float16")
+                            elif mj == 6 and 1 <= mi:
+                                return ("cuda", "int8")
+                            else:
+                                return ("cpu", "int8")
+                    except:
+                        pass
+                return ("cpu", "int8")
+
+            m = f"{model}.{language}" if (model != "large") and (model != "large-v2") and (language == "en") else model
+            run_device, compute_type = get(device)
+            self.audio_model = faster_whisper.WhisperModel(
+                m,
+                run_device,
+                device_index = device_index,
+                compute_type = compute_type,
+                download_root = download_root)
+
+        @property
+        def required_sample_rate(self) -> int | None:
+            return 16000
+
+        def get_verbose(self, verbose:int) -> str | None:
+            return None
+
+        def get_log_info(self) -> str:
+            return ""
+
+        def transcribe(self, audio_data:np.ndarray) -> inf.TranscribeResult:
+            segments, _  = self.audio_model.transcribe(
+                audio_data.astype(np.float32) / float(np.iinfo(np.int16).max),
+                language = self.__language,
+                beam_size=5)
+                #max_new_tokens = 128,
+                #condition_on_previous_text = False)
+            c = []
+            for s in segments:
+                c.append(s.text)
+            return inf.TranscribeResult("".join(c), segments)
+
+
+if src.val.SUPPORT_LIB_WHISPER_KOTOBA:
+    class RecognizeAndTranslateModelKotobaWhisper(inf.RecognitionModel, inf.TranslateModel):
+        def __init__(self, device:str, device_index:int) -> None:
+            torch_dtype = torch.bfloat16 if device == "cuda" else torch.float32
+            model_kwargs:Any = {"attn_implementation": "sdpa"} if torch.cuda.is_available() else {}
+            model_kwargs["torch_dtype"] = torch_dtype
+
+            if device == "cuda":
+                device = f"{device}:{device_index}"
+            self.__pipe = transformers.pipeline(
+                "automatic-speech-recognition",
+                model="kotoba-tech/kotoba-whisper-bilingual-v1.0",
+                device=device,
+                model_kwargs=model_kwargs,
+                chunk_length_s=15,
+                batch_size=16
+            )
+            self.__generate_kwargs_translate = {"language": "en", "task": "translate"}
+            self.__generate_kwargs_ttranscribe = {"language": "ja", "task": "transcribe"}
+
+        @property
+        def required_sample_rate(self) -> int | None:
+            return 16000
+
+        def translate(self, audio_data:np.ndarray, text:str) -> inf.TranslateResult:
+            reslut = self.__pipe(
+                audio_data.astype(np.float16) / float(np.iinfo(np.int16).max),
+                generate_kwargs = self.__generate_kwargs_translate)
+            r:str = reslut["text"] #type: ignore
+            return inf.TranslateResult(r, reslut)
+
+        def get_verbose(self, verbose:int) -> str | None:
+            return None
+
+        def transcribe(self, audio_data:np.ndarray) -> inf.TranscribeResult:
+            audio = audio_data.astype(np.float16) / float(np.iinfo(np.int16).max)
+            sample_rate = self.required_sample_rate
+            assert(sample_rate is not None)
+
+            reslut = self.__pipe(
+                audio,
+                return_timestamps=True,
+                generate_kwargs = self.__generate_kwargs_ttranscribe)
+            print(reslut["chunks"])
+            if "chunks" in reslut and len(reslut["chunks"]) == 1 and "timestamp" in reslut["chunks"][0]: #type: ignore
+                ts = reslut["chunks"][0]["timestamp"] #type: ignore
+                if ts[0] == 0.0 and ts[1] == 0.1:
+                    raise TranscribeException(f"ノイズ判定:{reslut}") 
+            r = reslut["text"] #type: ignore
+            if isinstance(r, str):
+                return inf.TranscribeResult(r, reslut)
+            if isinstance(r, list):
+                return inf.TranscribeResult("".join(r), reslut)
+            raise ex.ProgramError(f"pipelineから意図しない戻り値型:{type(r)}")
+
+
+    class TranslateModelTranslateGemma(inf.TranslateModel):
+        def __init__(self, device:str, device_index:int, parameter_size:str, target:str) -> None:
+            torch_dtype = torch.bfloat16 if device == "cuda" else torch.float32
+
+            if device == "cuda":
+                device = f"{device}:{device_index}"
+            self.__pipe = transformers.pipeline(
+                "image-text-to-text",
+                model=f"google/translategemma-{parameter_size}b-it",
+                device=device,
+                dtype=torch_dtype
+            )
+            self.__source_lang_code = "ja-JP"
+            self.__target_lang_code = target
+
+        @property
+        def required_sample_rate(self) -> int | None:
+            return None
+
+        def translate(self, audio_data:np.ndarray, text:str) -> inf.TranslateResult:
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "source_lang_code": self.__source_lang_code,
+                            "target_lang_code": self.__target_lang_code,
+                            "text": text,
+                        }
+                    ],
+                }
+            ]
+            output = self.__pipe(text=messages, max_new_tokens=200) #type: ignore
+            r:str = output[0]["generated_text"][-1]["content"] #type: ignore
+            return inf.TranslateResult(r, output)
+
+if src.val.METHOD_VALUE_MOONSHINE:
+    class RecognitionModelMoonShine(inf.RecognitionModel):
+        SAMPLE_RATE = 16000
+
+        def __init__(self) -> None:
+            model_path, model_arch = moonshine_voice.get_model_for_language("ja")
+            self.__transcriber = moonshine_voice.Transcriber(
+                model_path=model_path,
+                model_arch=model_arch)
+
+        @property
+        def required_sample_rate(self) -> int | None:
+            return RecognitionModelMoonShine.SAMPLE_RATE
+
+        def get_verbose(self, verbose:int) -> str | None:
+            return None
+
+        def get_log_info(self) -> str | None:
+            return None
+
+        def transcribe(self, audio_data:np.ndarray) -> inf.TranscribeResult:
+            ret = self.__transcriber.transcribe_without_streaming(
+                (audio_data.astype(np.float32) / float(np.iinfo(np.int16).max)).tolist())
+            return inf.TranscribeResult("".join(f"{line.text}" for line in ret.lines), ret)
+
+
+from dataclasses import dataclass
+@dataclass
+class ReazonSpeechKSubword:
+    """A subword with timestamp"""
+    # Currently Subword only has a single-point timestamp.
+    # Theoretically, we should be able to compute time ranges.
+    seconds: float
+    token: str
+
+
+class RecognitionModelReazonSpeechK2(inf.RecognitionModel):
+    SAMPLE_RATE = 16000
+
+    def __init__(self) -> None:
+        self.__model = RecognitionModelReazonSpeechK2._load_model()
+
+
+    @property
+    def required_sample_rate(self) -> int | None:
+        return RecognitionModelMoonShine.SAMPLE_RATE
+
+    def get_verbose(self, verbose:int) -> str | None:
+        return None
+
+    def get_log_info(self) -> str | None:
+        return None
+
+    def transcribe(self, audio_data:np.ndarray) -> inf.TranscribeResult:
+        # TODO: 30秒警告の処理をいれる
+        stream = self.__model.create_stream()
+        stream.accept_waveform(
+            RecognitionModelReazonSpeechK2.SAMPLE_RATE,
+            (audio_data.astype(np.float32) / float(np.iinfo(np.int16).max)).tolist())
+        self.__model.decode_stream(stream)
+
+        subwords = []
+        for t, s in zip(stream.result.tokens, stream.result.timestamps):
+            subwords.append(ReazonSpeechKSubword(token=t, seconds=s))
+
+        return inf.TranscribeResult(stream.result.text, subwords)
+
+
+    # https://github.com/reazon-research/ReazonSpeech/blob/master/pkg/k2-asr/src/transcribe.py
+    # The following definitions should match the repository layout
+    # on Hugging Face Hub. Whenever the HF repo is changed, this
+    # file should be updated accordingly.
+    #
+    # Multi lingual also has precision fp16, but is currently not
+    # in use.
+    #
+    # https://huggingface.co/reazon-research/reazonspeech-k2-v2
+    # https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en
+    # https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en-mls-5k-corrected
+    @staticmethod
+    def _load_model(device="cpu", precision="fp32", language="ja"):
+        import os
+        import huggingface_hub
+        import huggingface_hub.errors
+        import sherpa_onnx
+        """Load ReazonSpeech model from Hugging Face
+
+        Args:
+        device (str): "cpu", "cuda" or "coreml"
+        precision (str): Whether to load quantized model ("fp32", "int8" or "int8-fp32")
+        language (str): Whether to use japanese or bi-lingual model ("ja" or "ja-en" or "ja-en-mls-5k") 
+
+        Returns:
+        sherpa_onnx.OfflineRecognizer
+        """
+
+        if language == "ja":
+            hf_repo_id = "reazon-research/reazonspeech-k2-v2"
+            epochs = 99
+        elif language == "ja-en":
+            hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en"
+            epochs = 35
+        elif language == "ja-en-mls-5k":
+            hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en-mls-5k-corrected"
+            epochs = 21
+        else:
+            raise ValueError(f"Unknown language: '{language}'")
+
+        hf_repo_files = {
+            "fp32": {
+                "tokens": "tokens.txt",
+                "encoder": f"encoder-epoch-{epochs}-avg-1.onnx",
+                "decoder": f"decoder-epoch-{epochs}-avg-1.onnx",
+                "joiner": f"joiner-epoch-{epochs}-avg-1.onnx",
+            },
+            "int8": {
+                "tokens": "tokens.txt",
+                "encoder": f"encoder-epoch-{epochs}-avg-1.int8.onnx",
+                "decoder": f"decoder-epoch-{epochs}-avg-1.int8.onnx",
+                "joiner": f"joiner-epoch-{epochs}-avg-1.int8.onnx",
+            },
+            "int8-fp32": {
+                "tokens": "tokens.txt",
+                "encoder": f"encoder-epoch-{epochs}-avg-1.int8.onnx",
+                "decoder": f"decoder-epoch-{epochs}-avg-1.onnx",
+                "joiner": f"joiner-epoch-{epochs}-avg-1.int8.onnx",
+            }
+        }
+
+        if precision not in hf_repo_files:
+            raise ValueError("Unknown precision: '%s'" % precision)
+
+        files = hf_repo_files[precision]
+
+        # If the model is found in the local cache, do not connect
+        # to Hugging Face.
+        try:
+            basedir = huggingface_hub.snapshot_download(hf_repo_id, local_files_only=True)
+        except huggingface_hub.errors.LocalEntryNotFoundError:
+            basedir = huggingface_hub.snapshot_download(hf_repo_id)
+
+        return sherpa_onnx.OfflineRecognizer.from_transducer(
+            tokens=os.path.join(basedir, files["tokens"]),
+            encoder=os.path.join(basedir, files['encoder']),
+            decoder=os.path.join(basedir, files['decoder']),
+            joiner=os.path.join(basedir, files['joiner']),
+            num_threads=1,
+            sample_rate=16000,
+            feature_dim=80,
+            decoding_method="greedy_search",
+            provider=device,
+        )
+
+
+class TranscribeException(ex.IlluminateException):
+    """
+    認識に失敗した際なげる例外
+    """
+    pass
+
+#class TranslateException(ex.IlluminateException):
+#    """
+#    認識に失敗した際なげる例外
+#    """
+#    pass

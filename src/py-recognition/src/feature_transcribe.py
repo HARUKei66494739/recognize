@@ -4,6 +4,7 @@ import wave
 import glob
 import numpy
 
+import src.interface as inf
 import src.microphone
 import src.recognition
 import src.val as val
@@ -12,7 +13,7 @@ from src.cancellation import CancellationObject
 
 def run(
     path:str,
-    recognition_model:src.recognition.RecognitionModel,
+    recognition_model:inf.RecognitionModel,
     env:Enviroment,
     logger:Logger,
     feature:str) -> None:

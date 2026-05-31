@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <title>ゆーかねブラウザ認識</title>
+
+  
+<!-- Compiled and minified CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.2.2/dist/css/materialize.min.css">
+<!-- Compiled and minified JavaScript -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<style>
+:root {
+  font-family:"Yu Gothic UI", sans-serif;
+}
+body {
+  margin: 0;
+  padding: 0;
+}
+
+#c {
+  margin-left: auto;
+  margin-right: auto;
+  padding: 24px;
+  width: 80vw;
+}
+
+#c #install {
+  display: none;
+}
+
+#c.install #install {
+  display: block;
+}
+
+#c1 {
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  grid-template-rows: 20px 1fr;
+  place-items: center;
+}
+#state { font-size: 16px; }
+#recognition { font-size: 20px; }
+  </style>
+</head>
+<body>
+  <div id="c">
+    <div id="install">
+      <div>日本語のローカル認識に必要なコンポーネントがインストールされていません。続行するには下記ボタンを押下してインストールしてください。</div>
+      <button class="waves-effect waves-light btn" type="button" onclick="onInstall()">インストール</button>
+    </div>      
+    <div id='recognition'></div>
+  </div>
+
+  <div id='c1'>
+    <div id='state'></div>
+  </div>
+<script>
+const SR_STATE_AVAILABLE = "available";
+const SR_STATE_UNAVAILABLE = "unavailable";
+const SR_STATE_INSTALL = "install";
+
+function ws() {
+  const elState = document.querySelector('#state');
+  let pingPong = null;
+  let con = new WebSocket('ws://localhost:$$WS_PORT$$');
+  con.onopen = (event) => {
+    elState.innerHTML = '認識待機中';
+  };
+  con.onmessage = (event) => {
+    if(event.data == 'exit') {
+      window.close();
+    } else if(event.data == 'pong') {
+      clearTimeout(pingPong);
+    }
+  };
+  setTimeout(() => {
+    con.send('ping');
+    pingPongTimer = setTimeout(() => {
+      pingPong = null
+      con = ws();
+    }, 1000);
+  }, 30000);
+  return con;
+}
+
+function avl() {
+  return new Promise((resolve) => {
+    SpeechRecognition.available({ langs: ["ja-JP"], processLocally: true })
+      .then((result) => {
+        if (result === SR_STATE_UNAVAILABLE) {
+          resolve(SR_STATE_UNAVAILABLE);
+        } else if (result === SR_STATE_AVAILABLE) {
+          resolve(SR_STATE_AVAILABLE);
+        } else {
+          resolve(SR_STATE_INSTALL);
+        }
+      });
+   });
+ }
+ 
+function inst() {
+  return new Promise((resolve) => {
+    SpeechRecognition.install({
+      langs: ["ja-JP"],
+      processLocally: true,
+    }).then((result) => {
+      if (result) {
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+     });
+  });
+}
+ 
+function recog(el, elState) {
+  SpeechRecognition = webkitSpeechRecognition || SpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'ja-JP';
+  recognition.interimResults = true;
+  recognition.processLocally = $$LOCALLY$$;
+  recognition.onresult = (event) => {
+    let transcript = '';
+    let finish = false;
+    for(let i = event.resultIndex; i<event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+      finish |= event.results[i].isFinal;
+    }
+    elState.innerHTML = finish ? '認識待機中' : '認識中…';
+    el.innerHTML = finish ? transcript : `<font color='#999'>${transcript}</font>`;
+    con.send(JSON.stringify({ transcript, finish }));
+  }
+  recognition.onend = (event) => {
+    console.log('onend')
+    recognition.start(); // continuousではなんか止まるので明示的に止まったらスタートする
+  }
+  recognition.onsoundend = (event) => {
+    console.log('onsoundend')
+  }
+  recognition.onerror  = (event) => {
+    console.log('onerror')
+    console.log(event)
+
+  }
+  recognition.start();
+}
+
+
+function onInstall() {
+  const elContainer = document.querySelector('#c');
+
+  elContainer.classList.remove("install");
+  inst().then((ret) => {
+    if(ret) {
+      elState.innerHTML = "インストールが完了しました";
+      recog(el, elState);
+    } else {
+      elState.innerHTML = "インストールに失敗しました";
+    }
+  });
+}
+  const elContainer = document.querySelector('#c');
+  const elState = document.querySelector('#state');
+  const el = document.querySelector('#recognition');
+  elState.innerHTML = "準備中…";
+
+
+  let con = ws();
+
+  avl().then((result) => {
+    if (result === SR_STATE_UNAVAILABLE) {
+      elState.innerHTML = "不明なコード";    
+    } else if (result === SR_STATE_AVAILABLE) {
+      elState.innerHTML = "認識待機中…";
+      recog(el, elState);
+    } else if (result === SR_STATE_INSTALL) {
+      elState.innerHTML = "言語をインストール待機";
+      elContainer.classList.add("install");
+      /*
+      elState.innerHTML = "言語をインストールしています";
+      inst().then((ret) => {
+        if(ret) {
+          elState.innerHTML = "インストールが完了しました";
+          recog(el, elState);
+        } else {
+          elState.innerHTML = "インストールに失敗しました";
+        }
+      });
+      */
+    } else {
+      elState.innerHTML = "不明なコード";    
+    }
+
+    //console.log(ret);
+  });
+  window.resizeTo(240, 240);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.2.2/dist/js/materialize.min.js"></script>
+</html>

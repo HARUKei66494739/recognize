@@ -1,9 +1,12 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices;
+
+
 
 #pragma warning disable SYSLIB1054 // LibraryImportの警告はいったん抑制する
 
@@ -105,6 +108,9 @@ internal static class Interop {
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
 	public static extern bool ScreenToClient(nint hWnd, ref POINT lpPoint);
 
+	[DllImport("user32.dll")]
+	public static extern bool GetWindowPlacement(IntPtr hwnd, ref WINDOWPLACEMENT lpwndpl);
+
 	public const int WM_KILLFOCUS = 0x0008;
 	public const int WM_LBUTTONDOWN = 0x201;
 	public const int WM_LBUTTONUP = 0x202;
@@ -135,6 +141,16 @@ internal static class Interop {
 		public int top;
 		public int right;
 		public int bottom;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	public struct WINDOWPLACEMENT {
+		public int length;
+		public int flags;
+		public int showCmd;
+		public POINT ptMinPosition;
+		public POINT ptMaxPosition;
+		public RECT rcNormalPosition;
 	}
 
 	[DllImport("oleacc.dll")]

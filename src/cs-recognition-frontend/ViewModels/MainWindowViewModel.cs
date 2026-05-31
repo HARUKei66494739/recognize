@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -34,6 +35,12 @@ public class MainWindowViewModel : BindableBase {
 	private readonly string TEMP_BAT = global::System.IO.Path.Combine(
 		global::System.IO.Path.GetTempPath(),
 		string.Format("recognize-gui-{0}.bat", Guid.NewGuid()));
+
+	private ReactivePropertySlim<bool> IsRunningLoadMic { get; } = new(initialValue: false);
+
+	public ReactivePropertySlim<Visibility> InitializeVisibility { get; } = new(initialValue: Visibility.Visible);
+	public IReadOnlyReactiveProperty<bool> IsEnabledMicSelect { get; }
+	public IReadOnlyReactiveProperty<bool> IsEnabledStart { get; }
 
 	public ReactiveProperty<Models.Filter> Filter { get; } = new(initialValue: new());
 
@@ -80,6 +87,14 @@ public class MainWindowViewModel : BindableBase {
 
 	public MainWindowViewModel(IDialogService dialogService) {
 		this.dialogService = dialogService;
+
+		this.IsEnabledMicSelect = this.IsRunningLoadMic
+			.Select(x => !x)
+			.ToReadOnlyReactivePropertySlim();
+		this.IsEnabledStart = this.IsRunningLoadMic
+			.Select(x => !x)
+			.ToReadOnlyReactivePropertySlim();
+
 		this.LoadedCommand.Subscribe(async x => await this.OnLoaded(x));
 		this.ClosingCommand.Subscribe(() => this.OnClosing());
 		this.IlluminateClientClickCommand.Subscribe(x => this.OnIlluminateClientClick(x));
@@ -182,9 +197,21 @@ public class MainWindowViewModel : BindableBase {
 		catch(Exception) {
 			this.Config = new();
 		}
-		this.LoadMicList();
 		this.ConfigBinder = new(this.Config);
-		this.LoadMicList();
+		{
+			var mic = this.ConfigBinder.MicDeviceIndex.Value;
+			this.LoadMicList()
+				.Subscribe(
+					x => { 
+						if(1 < x.Count()) {
+							this.ConfigBinder.MicDeviceIndex.Value = mic;
+						}
+					},
+					ex => { },
+					() => {
+						this.InitializeVisibility.Value = Visibility.Collapsed;
+					});
+		}
 	}
 
 	/// <summary>旧設定フォーマットからの読み込み</summary>
@@ -243,28 +270,52 @@ public class MainWindowViewModel : BindableBase {
 		return sb.ToString();
 	}
 
-	private void LoadMicList() {
-		try {
-			if(File.Exists(this.Config.Extra.RecognizeExePath)) {
-				this.ConfigBinder.MicDevicesBinder.Clear();
-				this.ConfigBinder.MicDevicesBinder.Add("設定しない");
-				using(var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
-					FileName = this.Config.Extra.RecognizeExePath,
-					Arguments = "--print_mics",
-					RedirectStandardOutput = true,
-					UseShellExecute = false,
-					WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
-					CreateNoWindow = true,
-				})) {
-					string? s;
-					while((s = p?.StandardOutput?.ReadLine()) != null) {
-						this.ConfigBinder.MicDevicesBinder.Add(s);
+	private IObservable<IEnumerable<string>> LoadMicList() {
+		return Observable.Create<List<string>>(o => {
+			try {
+				if(File.Exists(this.Config.Extra.RecognizeExePath)) {
+					this.IsRunningLoadMic.Value = true;
+					var r = new List<string>() {
+						"設定しない"
+					};
+					using(var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+						FileName = this.Config.Extra.RecognizeExePath,
+						Arguments = "--print_mics",
+						RedirectStandardOutput = true,
+						UseShellExecute = false,
+						WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+						CreateNoWindow = true,
+					})) {
+						string? s;
+						while((s = p?.StandardOutput?.ReadLine()) != null) {
+							r.Add(s);
+						}
+						p.WaitForExit();
+						o.OnNext(r);
 					}
-					p.WaitForExit();
 				}
 			}
-		}
-		catch(Exception) { }
+			catch(Exception e) {
+				o.OnError(e);
+			}
+			finally {
+				o.OnCompleted();
+			}
+			return System.Reactive.Disposables.Disposable.Empty;
+		})
+			.SubscribeOn(System.Reactive.Concurrency.TaskPoolScheduler.Default)
+			.ObserveOn(Reactive.Bindings.UIDispatcherScheduler.Default)
+			.Finally(() => {
+				this.IsRunningLoadMic.Value = false;
+			})
+			.Select(
+				x => {
+					if(0 < x.Count) {
+						this.ConfigBinder.MicDevicesBinder.Clear();
+						this.ConfigBinder.MicDevicesBinder.AddRange(x);
+					}
+					return x.AsReadOnly();
+				});
 	}
 
 	private void ExecuteTest(string testArg) {
@@ -478,7 +529,7 @@ public class MainWindowViewModel : BindableBase {
 
 
 	private void OnConnectWhisper() {
-		this.ConfigBinder.TranscribeModeIndex.Value = ConfigBinder.TranscribeIndexAi;
+		this.ConfigBinder.TranscribeModeIndex.Value = ConfigBinder.TranscribeIndexAiWhisper;
 		this.ConfigBinder.HpfParamaterIndex.Value = ConfigBinder.HpfIndexHi;
 		this.ConfigBinder.MicrophoneRecordMinDurationBinder.Value = "0.8";
 	}
@@ -502,8 +553,13 @@ public class MainWindowViewModel : BindableBase {
 
 
 	private void OnMicReload() {
-		this.LoadMicList();
-		this.ConfigBinder.MicDeviceIndex.Value = 0;
+		this.LoadMicList()
+			.Subscribe(
+				x => {
+					this.ConfigBinder.MicDeviceIndex.Value = 0;
+				},
+				ex => { },
+				() => { });
 	}
 
 	public async Task OnRuleImport() {

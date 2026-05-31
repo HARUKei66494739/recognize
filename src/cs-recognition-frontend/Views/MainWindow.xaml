@@ -54,7 +54,10 @@
         </Grid.RowDefinitions>
         <Menu>
             <MenuItem Header="ファイル(_F)">
-                <MenuItem Header="バッチファイルを作成" Command="{Binding CreateBatchommand}"/>
+                <MenuItem
+                    Header="バッチファイルを作成"
+                    IsEnabled="{Binding IsEnabledStart.Value, Mode=OneWay}"
+                    Command="{Binding CreateBatchommand}"/>
                 <!--
                 <Separator />
                 <MenuItem Header="マイクテスト" Command="{Binding MicTestCommand}"/>
@@ -264,11 +267,13 @@
                                 FontSize="{DynamicResource YsrFontSize}"
                                 ItemsSource="{Binding ConfigBinder.MicDevicesBinder, Mode=OneWay}"
                                 SelectedIndex="{Binding ConfigBinder.MicDeviceIndex.Value, Mode=TwoWay}"
+                                IsEnabled="{Binding IsEnabledMicSelect.Value, Mode=OneWay}"
                                 />
                             <Button
                                 Grid.Column="1"
                                 FontSize="{DynamicResource YsrFontSize}"
                                 Content="再読み込み"
+                                IsEnabled="{Binding IsEnabledMicSelect.Value, Mode=OneWay}"
                                 Command="{Binding MicReloadCommand, Mode=OneWay}"
                                 />
                         </Grid>
@@ -1160,8 +1165,42 @@
             Margin="5"
             FontSize="{DynamicResource YsrFontSize}"
             Content="起動"
+            IsEnabled="{Binding IsEnabledStart.Value, Mode=OneWay}"
             Command="{Binding ExecCommand}"
             />
 
+        <Border
+            Grid.RowSpan="3"
+            Background="White"
+            IsHitTestVisible="True"
+            Visibility="{Binding InitializeVisibility.Value, Mode=OneWay}">
+
+            <Grid
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="12" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock
+                    Grid.Row="0"
+                    HorizontalAlignment="Center"
+                    FontSize="24"
+                    Text="初期化中…ちょっと待ってね"
+                    />
+
+                <ProgressBar
+                    Grid.Row="2"
+                    Width="160"
+                    Height="20"
+                    IsIndeterminate="True"
+                    />
+
+            </Grid>
+            
+        </Border>
     </Grid>
 </Window>

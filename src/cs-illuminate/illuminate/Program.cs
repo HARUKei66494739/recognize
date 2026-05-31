@@ -257,9 +257,15 @@ class Program {
 			var parsed = (Parsed<Models.CommandOptions>)result;
 			if (parsed != null) {
 				AppDomain.CurrentDomain.UnhandledException += (_, e) => {
-					Logger.Current.Info("致命的なエラー");
-					Logger.Current.Info(e.ExceptionObject);
+					Logger.Current.ErrorSync("致命的なエラー");
+					Logger.Current.ErrorSync(e.ExceptionObject);
 				};
+
+				Logger.Current.Init(
+					parsed.Value.LogRotate switch {
+						true => Logger.GenRotateLogFileName(),
+						_ => null,
+					});
 
 				Logger.Current.Info("illuminateが起動しました");
 				Logger.Current.Info(string.Join(' ', args));
