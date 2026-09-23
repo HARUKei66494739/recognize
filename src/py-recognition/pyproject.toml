@@ -1,6 +1,15 @@
 [tool.pyright]
 include = ["src"]
-exclude = []
+exclude = [
+    "**/__pycache__",
+    "**/dist",
+    "**/build",
+    "**/.debug"
+    ".venv"
+]
+
+[tool.pyright]
+typeCheckingMode = "basic"
 
 [project.entry-points.pyinstaller40]
 hook-dirs = "src.__pyinstaller:get_hook_dirs"

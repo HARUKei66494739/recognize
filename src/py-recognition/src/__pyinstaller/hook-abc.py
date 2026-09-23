@@ -15,6 +15,7 @@ hiddenimports = [
 datas = []
 datas += collect_data_files("src.resources")
 datas += collect_data_files("silero_vad")
+datas += collect_data_files('transformers', include_py_files=True, includes=['**/*.py'])
 
 
 binaries = []

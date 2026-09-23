@@ -458,6 +458,7 @@ def main(
                     parallel_reduce_count_duplex=google_duplex_parallel_reduce_count),
                 val.METHOD_VALUE_MOONSHINE: lambda: recognition.RecognitionModelMoonShine(),
                 val.METHOD_VALUE_REAZON_SPEECH: lambda:recognition.RecognitionModelReazonSpeechK2(),
+                val.METHOD_VALUE_KODAMA_STREAMING: lambda:recognition.RecognitionModelKodamaStreaming(),
             }[method]()
             ilm_logger.debug(f"#認識モデルは{type(recognition_model)}を使用", reset_console=True)
 
