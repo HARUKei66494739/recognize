@@ -35,4 +35,4 @@ npm run doc:preview
 
 
 ## 本番へのデプロイ
-githubにブランチをプッシュした後developに対してPRを投げてください。mainまでマージされるとデプロイされます。
+githubにブランチをプッシュした後docs-updateブランチに対してPRを投げてください。mainまでマージされるとデプロイされます。

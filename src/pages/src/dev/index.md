@@ -11,7 +11,7 @@ next: false
 |----|----|
 |OS|Windows 11|
 |python|3.11,3.12|
-|そのほか|.NET SDK v8|
+|そのほか|.NET SDK v10|
 
 ## ビルド
 プロジェクトルートにあるbuild-all.batを実行するとビルドされます。
