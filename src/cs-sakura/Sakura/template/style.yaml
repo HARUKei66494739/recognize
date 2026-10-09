@@ -1,0 +1,66 @@
+
+version: 1
+package: __sakura
+
+var:
+  __sakura_width: 1280px
+  __sakura_height: 720px
+  __sakura_foreground: rgba(255, 255, 255, 1)
+  __sakura_background: rgba(0, 0, 0, 0.6)
+  __sakura_layout_padding: 24px
+  __sakura_font: '"メイリオ", sans-serif'
+  __sakura_font-size: 64px
+  __sakura_stroke-size: unset
+  __sakura_stroke-color: unset
+
+#  __sakura_stroke-size: 10px
+#  __sakura_stroke-color: hsl(from currentColor h s calc(l * 0.2))
+
+selector:
+  - id: sakura-root
+    selector: "#sakura-root"
+    def: |
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: var(--__sakura_width);
+      height: var(--__sakura_height);
+
+      padding: var(--sakura_layout_padding);
+
+      background: var(--__sakura_background);
+      color: var(--__sakura_foreground);
+      font-family: var(--__sakura_font);
+      font-size: var(--__sakura_font-size);
+
+  - id: sakura-contents
+    selector: "#sakura-contents"
+    def: |
+      position: absolute;
+      top: 0;
+
+      display: flex;
+      flex-direction: column-reverse;
+
+  - id: sakura-contents-item-aster
+    selector: "#sakura-contents .item"
+    def: |
+      font-size: 40%;
+
+  - id: sakura-contents-item-last
+    selector: "#sakura-contents .item:last-child"
+    def: |
+      font-size: 100%;
+
+  - id: sakura-transcript
+    selector: ".transcript"
+    def: |
+      -webkit-text-stroke-width: var(--__sakura_stroke-size);
+      -webkit-text-stroke-color: var(--__sakura_stroke-color);
+      text-stroke: var(--__sakura_stroke-size) var(--__sakura_stroke-color);
+      paint-order: stroke;
+
+  - id: sakura-entry
+    selector: ".appearance"
+    def: |
+      display: inline-block;

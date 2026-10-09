@@ -1,0 +1,23 @@
+version: 1
+package: chiwachiwa
+
+
+style:
+  - item: わっちわっち
+    name: watch
+    property:
+      color: "#31B76E"
+      animation-duration: 0.05s
+      animation-name: __sakura_keyf-shake, chiwachiwa_keyf-watch
+      animation-iteration-count: 10
+      animation-timing-function: linear
+
+keyframe:
+  - item: わっちち
+    name: keyf-watch
+    action: |
+      to {
+          transform: scale(110%);
+      }
+
+

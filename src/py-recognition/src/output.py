@@ -159,6 +159,30 @@ class YukaconeOutputer(WebSocketOutputer):
         else:
             return get()
 
+class SakuraOutputer(WebSocketOutputer):
+    """
+    ゆーかねすぴれこ/sakuraに出力する
+    """
+    def __init__(
+            self,
+            host:str,
+            port:int):
+        super().__init__(f"ws://{host}:{port}", "sakura")
+
+    def output(self, text_ja:str, text_en:str) -> str:
+        return self._send(json.dumps({
+            "transcript": text_ja,
+            "translate": [
+                {
+                    "index": 0,
+                    "translate": text_en,
+                    "lang": "en",
+                }
+            ],
+            "finish": True,
+        }, ensure_ascii=False))
+
+
 class IlluminateSpeechOutputer(WebSocketOutputer):
     def __init__(
             self,

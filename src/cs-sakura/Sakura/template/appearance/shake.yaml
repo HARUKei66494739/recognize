@@ -1,0 +1,44 @@
+version: 1
+package: __sakura
+
+var:
+  - name: shake-t
+    value: 2px
+  - name: shake-r
+    value: 5deg
+
+style:
+  - item: 約1秒間テキストを揺らします
+    name: shake
+    property:
+      animation-duration: 0.1s
+      animation-name: __sakura_keyf-shake
+      animation-iteration-count: 10
+      animation-timeline: linear
+
+keyframe:
+  - item: 振動アニメーション
+    name: keyf-shake
+    action: |
+      0%  {
+          transform: translate(0, 0) rotate(0);
+      }
+      16.66% {
+          transform: translate(calc(2px * 2), calc(2px * -1)) rotate(5deg);
+      }
+      33.32% {
+          transform: translate(calc(2px* 2), calc(2px * -1)) rotate(calc(5deg));
+      }
+      49.98% {
+          transform: translate(0, 0) rotate(0);
+      }
+      66.64% {
+          transform: translate(calc(2px * -2), calc(2px * -1)) rotate(5deg);
+      }
+      83.30% {
+          transform: translate(calc(2px * -2), calc(2px * -1)) rotate(calc(5deg * -1));
+      }
+      100% {
+          transform: translate(0, 0) rotate(0);
+      }
+

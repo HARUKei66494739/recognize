@@ -1,0 +1,42 @@
+version: 1
+package: __sakura
+
+
+style:
+  - item: 文字を虹色アニメーションする
+    name: linear-gradient
+    property:
+      animation-name: __sakura_keyf-linear-gradient
+      animation-duration: 1s
+      animation-timing-function: linear
+      animation-timeline: infinite
+
+keyframe:
+  - item: 文字を虹色アニメーションする
+    name: keyf-linear-gradient
+    action: |
+      0% {
+        color: #e60000;
+      }
+      12% {
+        color: #f39800;
+      }
+      24%{
+        color: #fff100;
+      }
+      36%{
+        color: #009944;
+      }
+      48%{
+        color: #0068b7;
+      }
+      70%{
+        color: #1d2088;
+      }
+      86%{
+        color: #920783;
+      }
+      100% {
+        color: #e60000;
+      }
+
