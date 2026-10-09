@@ -1,0 +1,13 @@
+version: 1
+package: sample
+
+
+style:
+  - item: big
+    name: big
+    property:
+      color: "#EC008C"
+      font-size: 140%
+
+
+

@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../cs-shared/YukaneShared.shproj" Id="7f8798f7-a6ca-4cdf-ba33-f1c04b333a2b" />
+  <Project Path="Sakura/Sakura.csproj" Id="6aa976e8-e0b1-4ab7-8753-cbdc2c892038" />
+</Solution>

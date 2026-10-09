@@ -1,0 +1,5 @@
+version: 1
+
+max-transcript-items: 3
+remove-caption-duration: 5000 
+websocket-port: 20481

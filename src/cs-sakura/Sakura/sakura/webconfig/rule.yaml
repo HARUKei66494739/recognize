@@ -1,0 +1,14 @@
+version: 1
+
+rule:
+  - method: fixed
+    target: "虹色"
+    appearance: "__sakura_linear-gradient"
+
+  - method: fixed
+    target: "配信"
+    appearance: "sample_big"
+
+  - method: fixed
+    target: "わっちわっち"
+    appearance: "chiwachiwa_watch"

@@ -136,6 +136,8 @@ def __whiper_help(s:str) -> str:
 @click.option("--out_obs_caption_ja", default=False, help="動作しません。このオプションは予約されています", is_flag=True, type=bool)
 @click.option("--out_obs_caption_en", default=False, help="字幕(en_US)テキストオブジェクトの名前", is_flag=True, type=bool)
 @click.option("--out_obs_text_starts_with", default=False, help="", type=bool, is_flag=True)
+@click.option("--out_sakura_host", default="127.0.0.1", help="", type=str)
+@click.option("--out_sakura_port", default=20481, help="", type=int)
 
 @click.option("--filter_hpf", default=None, help="ハイパスフィルタのカットオフ周波数を設定、ハイパスフィルタを有効化", type=int)
 
@@ -224,6 +226,9 @@ def main(
     out_obs_caption_ja:bool,
     out_obs_caption_en:bool,
     out_obs_text_starts_with:bool,
+
+    out_sakura_host:str,
+    out_sakura_port:int,
 
     filter_hpf:Optional[int],
     vad:str,
@@ -529,6 +534,9 @@ def main(
                 out_obs_text_starts_with,
                 out_obs_truncate,
                 ilm_logger),
+            val.OUT_VALUE_SAKURA: lambda: output.SakuraOutputer(
+                out_sakura_host,
+                out_sakura_port),
             val.OUT_VALUE_FILE: lambda: output_subtitle.FileSubtitleOutputer(
                 out_file_directory,
                 out_file_truncate,
