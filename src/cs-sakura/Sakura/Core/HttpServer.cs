@@ -28,8 +28,7 @@ internal class HttpServer {
 					var request = context.Request;
 
 					using var response = context.Response;
-					//D:\recognize_sakura\src\cs-sakura\Sakura\bin\Debug\net10.0-windows\wwww\index.html
-					var wwwRoot = @"D:\recognize_sakura\src\cs-sakura\Sakura\bin\Debug\net10.0-windows\www";
+					var wwwRoot = Path.Combine(AppContext.BaseDirectory, "www");
 					var path = Path.Combine(wwwRoot, request.RawUrl switch {
 						"/" => "index.html",
 						_ => (request.RawUrl switch {

@@ -26,7 +26,7 @@ selector:
       width: var(--__sakura_width);
       height: var(--__sakura_height);
 
-      padding: var(--sakura_layout_padding);
+      padding: var(--__sakura_layout_padding);
 
       background: var(--__sakura_background);
       color: var(--__sakura_foreground);
