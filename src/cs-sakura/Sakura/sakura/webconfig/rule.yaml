@@ -4,10 +4,21 @@ rule:
   - method: fixed
     target: "虹色"
     appearance: "__sakura_linear-gradient"
+  - method: fixed
+    target: "プレミアム フライデー"
+    appearance: "__sakura_golden"
 
   - method: fixed
     target: "配信"
     appearance: "sample_big"
+
+  # 先がちルールなので競合する場合は先に宣言する
+  - method: fixed
+    target: "影法師"
+    appearance: "sample_big-shadow"
+  - method: fixed
+    target: "影"
+    appearance: "sample_pink-shadow"
 
   - method: fixed
     target: "わっちわっち"

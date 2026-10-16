@@ -34,6 +34,7 @@ internal class Template {
 
 
 	[YamlMember(Alias = "var")]
+	[YamlConverter(typeof(Helpers.Yaml.TemplateVarConverter))]
 	public IEnumerable<TemplateVar>? _Var { get; set; }
 
 	[YamlMember(Alias = "style")]
@@ -49,63 +50,35 @@ internal class TemplateVar {
 
 	[YamlMember(Alias = "value")]
 	public string Value { get; set; }
+
+	[YamlMember(Alias = "unit")]
+	public string? Unit { get; set; }
 }
 
 internal class TemplateStyle {
 	[YamlMember(Alias = "item")]
-	public string Item { get; set; }
+	public string Item { get; init; } = "";
 
-	[YamlMember(Alias = "name")]
-	public string Name { get; set; }
+	[YamlMember(Alias = "id")]
+	public string Id { get; init; } = "";
+
+	[YamlMember(Alias = "base-on")]
+	public IEnumerable<string>? BaseOn { get; init; }
+
+	[YamlMember(Alias = "var")]
+	[YamlConverter(typeof(Helpers.Yaml.TemplateVarConverter))]
+	public IEnumerable<TemplateVar>? Var { get; init; }
 
 	[YamlMember(Alias = "property")]
-	public Dictionary<string, string> property { get; set; }
-
-	/*
-
-[YamlMember(Alias = "foreground")]
-public string? foreground { get; set; }
-[YamlMember(Alias = "background")]
-public string? background { get; set; }
-[YamlMember(Alias = "animation-name")]
-public string? AnimationName { get; set; }
-[YamlMember(Alias = "animation-duration")]
-public string? AnimationDuration { get; set; }
-[YamlMember(Alias = "animation-timing-function")]
-public string? AnimationTimingFunction { get; set; }
-[YamlMember(Alias = "animation-delay")]
-public string? animation-delay { get; set; }
-[YamlMember(Alias = "animation-direction")]
-public string? animation-direction { get; set; }
-[YamlMember(Alias = "animation-iteration-count")]
-public string? animation-iteration-count { get; set; }
-[YamlMember(Alias = "foreground")]
-public string? foreground { get; set; }
-[YamlMember(Alias = "foreground")]
-public string? foreground { get; set; }
-
-: null
-: 5s
-: null
-animation-fill-mode: null
-animation-play-state: null
-animation-timeline: infinite
-font-family: null,
-font-size: null,
-font-weight: null,
-margin-left: null,
-margin-top: null,
-margin-right: null,
-margin-bottom: null,
-*/
+	public IEnumerable<KeyValuePair< string, string>>? Property { get; init; }
 }
 
 internal class TemplateKeyframe {
 	[YamlMember(Alias = "item")]
 	public string Item { get; set; }
 
-	[YamlMember(Alias = "name")]
-	public string Name { get; set; }
+	[YamlMember(Alias = "id")]
+	public string Id { get; set; }
 
 	[YamlMember(Alias = "action")]
 	public string keyframe { get; set; }

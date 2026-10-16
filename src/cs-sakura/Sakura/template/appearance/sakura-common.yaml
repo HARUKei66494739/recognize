@@ -1,0 +1,34 @@
+version: 1
+package: __sakura
+
+
+style:
+  - item: 文字を大きくします
+    id: big
+    property:
+      - font-size: 120%
+
+  - item: もっと文字を大きくします
+    id: big-more
+    property:
+      - font-size: 140%
+
+  - item: 影を付けます
+    id: shadow
+    var:
+      - text-color: currentColor
+      - shadow-color: rgb(from var(--text-color) r g b / 0.8)
+    property:
+      - text-shadow: 0 0 12px var(--shadow-color)
+
+  - item: golden
+    id: golden
+    var:
+      - text-color: "linear-gradient(0deg, #f9f48e, #e5d051 21% 41%, #fefca8 63% 88%, #ddc847)"
+    property:
+      - background-image: var(--text-color)
+      - -webkit-background-clip: text;
+      - -webkit-text-fill-color: transparent;
+
+
+keyframe:

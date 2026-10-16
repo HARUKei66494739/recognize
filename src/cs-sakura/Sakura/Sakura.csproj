@@ -35,10 +35,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Resource\WWW\" />
-  </ItemGroup>
-
-  <ItemGroup>
 	  <None Update="sakura/**/**">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>

@@ -3,11 +3,31 @@ package: sample
 
 
 style:
-  - item: big
-    name: big
+  - item: shadow
+    id: pink-shadow
+    base-on:
+      - __sakura_shadow
+    var:
+      - text-color: "#EC008C"
     property:
-      color: "#EC008C"
-      font-size: 140%
+      - color: var(--text-color)
+
+  - item: shadow
+    id: big-shadow
+    base-on:
+      - __sakura_big
+      - __sakura_shadow
+    var:
+      - text-color: "#EC008C"
+    property:
+      - color: var(--text-color)
+
+
+  - item: big
+    id: big
+    property:
+      - color: "#EC008C"
+      - font-size: 140%
 
 
 
