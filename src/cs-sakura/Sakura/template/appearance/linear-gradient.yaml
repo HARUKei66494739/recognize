@@ -4,16 +4,16 @@ package: __sakura
 
 style:
   - item: 文字を虹色アニメーションする
-    name: linear-gradient
+    id: linear-gradient
     property:
-      animation-name: __sakura_keyf-linear-gradient
-      animation-duration: 1s
-      animation-timing-function: linear
-      animation-timeline: infinite
+      - animation-name: __sakura_keyf-linear-gradient
+      - animation-duration: 1s
+      - animation-timing-function: linear
+      - animation-timeline: infinite
 
 keyframe:
   - item: 文字を虹色アニメーションする
-    name: keyf-linear-gradient
+    id: keyf-linear-gradient
     action: |
       0% {
         color: #e60000;

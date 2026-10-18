@@ -1,6 +1,7 @@
 ﻿using Prism.Ioc;
 using Prism.Mvvm;
 using Prism.Unity;
+using System;
 using System.ComponentModel;
 using System.Configuration;
 using System.Data;
@@ -12,7 +13,13 @@ namespace Haru.Kei;
 /// </summary>
 public partial class App : PrismApplication {
 	protected override void OnStartup(StartupEventArgs e) {
+		AppDomain.CurrentDomain.UnhandledException += (_, e) => {
+			Utils.Singleton.Logger.ErrorUnHandled("致命的なエラー", e);
+		};
+
+		Utils.Singleton.Logger.Info("sakura起動");
 		//this.Shutdown();
+		Utils.Singleton.InitLog();
 		base.OnStartup(e);
 	}
 

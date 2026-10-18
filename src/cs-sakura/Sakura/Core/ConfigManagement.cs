@@ -4,29 +4,16 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Haru.Kei.Core; 
 internal class ConfigManagement {
 	private Models.Configs.ConfigWeb? webConfig;
 	private Models.Configs.ConfigRule? ruleConfig;
 
-	public void Load() {
+	public async Task Load() {
 		this.webConfig = null;
 		this.ruleConfig = null;
-
-		static T? Load<T>(string path) where T : class {
-			try {
-				var yml = System.IO.File.ReadAllText(path);
-				return Utils.Singleton.Deserializer.Deserialize<T>(yml);
-			}
-			catch (Exception e) when (
-				(e is System.IO.IOException)
-				|| (e is System.FieldAccessException)) {
-
-				return default;
-			}
-		}
-
 
 		var configRoot = Path.Combine(AppContext.BaseDirectory, "sakura");
 		var configWeb = Path.Combine(configRoot, "webconfig");
@@ -34,13 +21,13 @@ internal class ConfigManagement {
 		var fileWebConfig = Path.Combine(configWeb, "webconfig.yaml");
 		var fileRule = Path.Combine(configWeb, "rule.yaml");
 		if (!File.Exists(configWeb)) {
-
+			Utils.Singleton.Logger.Error($"必要な設定ファイルが見つかりません => {configWeb}");
 		}
 		if (!File.Exists(fileRule)) {
-
+			Utils.Singleton.Logger.Error($"必要な設定ファイルが見つかりません => {fileRule}");
 		}
-		this.webConfig = Load<Models.Configs.ConfigWeb>(fileWebConfig);
-		this.ruleConfig = Load<Models.Configs.ConfigRule>(fileRule);
+		this.webConfig = await Utils.Util.LoadYamlAsync<Models.Configs.ConfigWeb>(fileWebConfig);
+		this.ruleConfig = await Utils.Util.LoadYamlAsync<Models.Configs.ConfigRule>(fileRule);
 	}
 
 	public void ApplyWebConfig() {

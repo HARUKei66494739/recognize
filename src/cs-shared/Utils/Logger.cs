@@ -53,14 +53,26 @@ internal class Logger<T> where T:class, ILoggerProvider, new()  {
 	}
 
 	public void Error(object s) {
-		this.WriteOnScheduler($"{Prefix()}[e]{s}\r\n");
+		this.WriteOnScheduler(this.GenError(s));
 	}
 
 	public void ErrorSync(object s) {
 		this.WriteCore(
-			data: Encoding.UTF8.GetBytes($"{Prefix()}[e]{s}\r\n"),
+			data: Encoding.UTF8.GetBytes(this.GenError(s)),
 			writeStream: this.Get());
 	}
+
+	public void ErrorUnHandled(string header, UnhandledExceptionEventArgs e) {
+		var text = e.ExceptionObject switch {
+			{ } v => $"{this.GenError(header)}\r\n{this.GenError(v)}",
+			_ => $"{this.GenError(header)}\r\n{this.GenError("(null)")}"
+		};
+		this.WriteCore(
+			data: Encoding.UTF8.GetBytes(text),
+			writeStream: this.Get());
+	}
+
+	private string GenError(object s) => $"{Prefix()}[e]{s}\r\n";
 
 	private void WriteOnScheduler(string text, Stream? writeStream = null) {
 		this.WriteOnScheduler(

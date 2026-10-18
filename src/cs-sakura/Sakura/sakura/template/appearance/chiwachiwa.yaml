@@ -4,17 +4,16 @@ package: chiwachiwa
 
 style:
   - item: わっちわっち
-    name: watch
+    id: watch
+    base-on:
+      - __sakura_shake
     property:
-      color: "#31B76E"
-      animation-duration: 0.05s
-      animation-name: __sakura_keyf-shake, chiwachiwa_keyf-watch
-      animation-iteration-count: 10
-      animation-timing-function: linear
+      - color: "#31B76E"
+      - animation-name: __sakura_keyf-shake, chiwachiwa_keyf-watch
 
 keyframe:
   - item: わっちち
-    name: keyf-watch
+    id: keyf-watch
     action: |
       to {
           transform: scale(110%);

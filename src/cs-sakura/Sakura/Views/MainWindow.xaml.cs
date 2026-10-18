@@ -21,16 +21,29 @@ namespace Haru.Kei.Views {
 		public MainWindow() {
 			InitializeComponent();
 
+			Utils.Singleton.Logger.Info("メインウィンドウのコンポーネントが初期化されました");
+		}
+
+		protected async override void OnInitialized(EventArgs e) {
+			base.OnInitialized(e);
+
+			Utils.Singleton.Logger.Info("OnInitialized");
+			Utils.Singleton.Logger.Info("字幕の設定を読み込みます");
+
 			Core.CaptionManagement m = new Core.CaptionManagement();
-			m.Load();
+			await  m.Load();
 			var css = m.MakeCss();
 			System.IO.File.WriteAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "www", "assets", "sakura.gen.css"), css);
 
+			Utils.Singleton.Logger.Info("字幕の設定を読み込みました");
 
+			Utils.Singleton.Logger.Info("サーバの設定を読み込みました");
 			Core.ConfigManagement confmg = new Core.ConfigManagement();
-			confmg.Load();
+			await confmg.Load();
 			confmg.ApplyWebConfig();
+			Utils.Singleton.Logger.Info("サーバの設定を読み込みました");
 
+			Utils.Singleton.Logger.Info("サーバを起動します");
 			this.cores.Start(new(), new());
 		}
 	}
