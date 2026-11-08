@@ -10,11 +10,11 @@ var:
   __sakura_layout_padding: 24px
   __sakura_font: '"メイリオ", sans-serif'
   __sakura_font-size: 64px
-  __sakura_stroke-size: unset
-  __sakura_stroke-color: unset
+#  __sakura_stroke-size: unset
+#  __sakura_stroke-color: unset
 
-#  __sakura_stroke-size: 10px
-#  __sakura_stroke-color: hsl(from currentColor h s calc(l * 0.2))
+  __sakura_stroke-size: 10px
+  __sakura_stroke-color: hsl(from currentColor h s calc(l * 0.2))
 
 selector:
   - id: sakura-root

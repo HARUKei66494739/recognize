@@ -62,10 +62,28 @@ file record AppearanceRecord(string Key, string Value, AppearanceType type) {
 }
 
 
-internal class CaptionManagement {
+internal interface ICaptionManagement {
+	public Models.Style BaseStyle { get; }
+	public IEnumerable<Models.Template> SystemTemplates  { get; }
+	public string MakeCss();
+}
+
+internal class CaptionManagement : ICaptionManagement {
 	private Models.Style? baseStyle;
+	private List<Models.Template> systemTemplates = new();
 	private List<Models.Template> templates = new();
 
+
+	public Models.Style BaseStyle {
+		get {
+			if (this.baseStyle == null) {
+				throw new InvalidProgramException("バグ");
+			}
+			return this.baseStyle;
+		}
+	}
+
+	public IEnumerable<Models.Template> SystemTemplates => systemTemplates.AsReadOnly();
 
 	public async Task Load() {
 		this.baseStyle = null;
@@ -81,14 +99,16 @@ internal class CaptionManagement {
 
 
 		this.baseStyle = await Utils.Util.LoadYamlAsync<Models.Style>(path("style.yaml"));
-		var tasks = Directory.EnumerateFiles(appr)
+		var apps = Directory.EnumerateFiles(appr)
 			.Select(x => Utils.Util.LoadYamlAsync<Models.Template>(x))
 			.ToList();
+		var tasks = new List<Task<Models.Template?>>(apps);
 		if(Directory.Exists(configAppearance)) {
 			tasks.AddRange(Directory.EnumerateFiles(configAppearance)
 				.Select(x => Utils.Util.LoadYamlAsync<Models.Template>(x)));
 		}
 		await Task.WhenAll(tasks);
+		systemTemplates.AddRange(apps.Select(x => x.Result));
 		templates.AddRange(tasks.Select(x => x.Result));
 	}
 

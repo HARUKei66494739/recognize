@@ -25,6 +25,37 @@ namespace Haru.Kei.Helpers.Yaml;
  * 
  */
 public class TemplateVarConverter : IYamlTypeConverter {
+	private readonly string keyName;
+	private readonly string keyValue;
+	private readonly string keyDescription;
+	private readonly string KeyType;
+
+
+	public TemplateVarConverter() {
+		static string getName(System.Reflection.PropertyInfo inf) {
+			var attr = inf.GetCustomAttribute<YamlMemberAttribute>();
+			return attr switch {
+				{ } v when !string.IsNullOrEmpty(v.Alias) => v.Alias,
+				_ => inf.Name
+			};
+		}
+		var tp = typeof(Models.TemplateVar);
+		var infName = tp.GetProperty(nameof(Models.TemplateVar.Name));
+		var infValue = tp.GetProperty(nameof(Models.TemplateVar.Value));
+		var infDescription = tp.GetProperty(nameof(Models.TemplateVar.Description));
+		var infType = tp.GetProperty(nameof(Models.TemplateVar.Type));
+
+		System.Diagnostics.Debug.Assert(infName is not null);
+		System.Diagnostics.Debug.Assert(infValue is not null);
+		System.Diagnostics.Debug.Assert(infDescription is not null);
+		System.Diagnostics.Debug.Assert(infType is not null);
+
+		this.keyName = getName(infName);
+		this.keyValue = getName(infValue);
+		this.keyDescription = getName(infDescription);
+		this.KeyType = getName(infType);
+	}
+
 	public bool Accepts(Type type) {
 		return false;
 	}
@@ -35,67 +66,56 @@ public class TemplateVarConverter : IYamlTypeConverter {
 
 		var r = new List<Models.TemplateVar>();
 		parser.Consume<SequenceStart>();
-
-
 		while (parser.Current is MappingStart) {
 			parser.Consume<MappingStart>();
+			Console.WriteLine(parser.Current);
 
-			var kv = new List<KeyValuePair<string, string>>();
-			while (parser.Current is Scalar) {
-				kv.Add(parseKv(parser));
+			var _name = parser.Consume<Scalar>().Value;
+			var _value = default(string?);
+			var _dsc = default(string?);
+			var _type = default(string?);
+			if (parser.Current is Scalar) {
+				_value = parser.Consume<Scalar>().Value;
+				_dsc = "";
+			} else if(parser.Current is SequenceStart) {
+				parser.Consume<SequenceStart>();
+
+				var dic = new Dictionary<string, string>();
+				while (parser.Current is MappingStart) {
+					parser.Consume<MappingStart>();
+					var t = parseKv(parser);
+					dic.Add(t.Key, t.Value);
+					parser.Consume<MappingEnd>();
+				}
+
+
+				string v;
+				if(dic.TryGetValue("value", out v)) {
+					_value = v;
+				}
+				if (dic.TryGetValue("dsc", out v)) {
+					_dsc = v;
+				}
+				if (dic.TryGetValue("type", out v)) {
+					_type = v;
+				}
+				parser.Consume<SequenceEnd>();
 			}
+			if (_value is null) {
+				throw new Exception("aa");
+			}
+			if (_dsc is null) {
+				throw new Exception("aa");
+			}
+			r.Add(new Models.TemplateVar() {
+				Name = _name,
+				Value = _value,
+				Description = _dsc,
+				Type = _type,
+			});
 
 			parser.Consume<MappingEnd>();
-
-			if (kv.Count == 0) {
-				throw new Exception();
-			} else if (kv.Count == 1) {
-				r.Add(new Models.TemplateVar() {
-					Name = kv.First().Key,
-					Value = kv.First().Value,
-					Unit = null,
-				});
-			} else {
-				static string getName(System.Reflection.PropertyInfo inf) {
-					var attr = inf.GetCustomAttribute<YamlMemberAttribute>();
-					return attr switch {
-						{ } v when !string.IsNullOrEmpty(v.Alias) => v.Alias,
-						_ => inf.Name
-					};
-				}
-
-				var tp = typeof(Models.TemplateVar);
-				var infName = tp.GetProperty(nameof(Models.TemplateVar.Name));
-				var infValue = tp.GetProperty(nameof(Models.TemplateVar.Value));
-				var infUnit = tp.GetProperty(nameof(Models.TemplateVar.Unit));
-				if((infName is null) || (infValue is null) || (infUnit is null)) {
-					throw new ArgumentException("バグ");
-				}
-
-				var keyName = getName(infName);
-				var keyValue = getName(infName);
-				var keyUnit = getName(infName);
-
-				// KeyValuePairがstructなのでnullチェックの関係上一度配列で受け取る
-				var name = kv.Where(x => x.Key == keyName).ToArray();
-				var val = kv.Where(x => x.Key == keyValue).ToArray();
-				var unit = kv.Where(x => x.Key == keyUnit).ToArray();
-
-				if (name.Count() == 0) {
-					throw new YamlException($"{keyName}は必須");
-				}
-				if (val.Count() == 0) {
-					throw new YamlException($"{keyValue}は必須");
-				}
-				r.Add(new Models.TemplateVar() {
-					Name = name.First().Value,
-					Value = val.First().Value,
-					Unit = unit switch {
-						{ } v when 0 < v.Count() => v.First().Value,
-						_ => null
-					},
-				});
-			}
+			Console.WriteLine(parser.Current);
 		}
 		parser.Consume<SequenceEnd>();
 		return r;

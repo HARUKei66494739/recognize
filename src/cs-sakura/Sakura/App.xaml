@@ -11,6 +11,7 @@
                 <!--
                 <materialDesign:MahAppsBundledTheme BaseTheme="Inherit" PrimaryColor="Pink" SecondaryColor="Pink"  ColorAdjustment="{materialDesign:ColorAdjustment}" />
                 -->
+                <materialDesign:MahAppsBundledTheme BaseTheme="Light" PrimaryColor="Pink" SecondaryColor="Pink"  ColorAdjustment="{materialDesign:ColorAdjustment}" />
 
                 <!-- MahApps -->
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
@@ -30,17 +31,14 @@
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.MahApps;component/Themes/MaterialDesignTheme.MahApps.Defaults.xaml" />
 
 
-<!--
-                <ResourceDictionary Source="/Resources/Xaml/MaterialColor.xaml"/>
--->
+                <ResourceDictionary Source="/ViewComponents/Window.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <!--
             <SolidColorBrush x:Key="IdealForegroundColorBrush" Color="{DynamicResource Primary500Foreground}"/>
             <SolidColorBrush x:Key="IdealForegroundDisabledBrush" Color="{DynamicResource Primary500}" Opacity="0.4"/>
+            <!--
             <SolidColorBrush x:Key="MahApps.Brushes.ThemeForeground" Color="{DynamicResource Primary500Foreground}" />
             -->
-
         </ResourceDictionary>
     </Application.Resources>
 </prism:PrismApplication>

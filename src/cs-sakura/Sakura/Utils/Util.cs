@@ -19,6 +19,7 @@ internal class Util {
 		}
 		catch (YamlDotNet.Core.YamlException e) {
 			Utils.Singleton.Logger.Error($"{path}でエラー");
+			Utils.Singleton.Logger.Error(e.TargetSite);
 			Utils.Singleton.Logger.Error(e);
 			throw;
 		}
