@@ -3,17 +3,50 @@ package: __sakura
 
 
 style:
-  - item: 文字を大きくします
-    id: big
+  - item: テキストに色を設定
+    id: text-color
+    var:
+      - text-color:
+        - dsc: 文字色
+        - value: "#000000"
+    property:
+      - color: var(--text-color)
+
+  - item: テキスト枠を設定
+    id: text-stroke
+    var:
+      - stroke-color:
+        - dsc: 線の色
+        - value: "#000000"
+      - stroke-size:
+        - dsc: 線の太さ
+        - value: 1px
+    property:
+      - -webkit-text-stroke-width: var(--__sakura_stroke-size);
+      - -webkit-text-stroke-color: var(--__sakura_stroke-color);
+      - text-stroke: var(--__sakura_stroke-size) var(--__sakura_stroke-color);
+
+  - item: 文字を大きく
+    id: text-big
     property:
       - font-size: 120%
 
-  - item: もっと文字を大きくします
-    id: big-more
+  - item: もっと文字を大きく
+    id: text-big-more
     property:
       - font-size: 140%
 
-  - item: 影を付けます
+  - item: 文字
+    id: font-weight 
+    var:
+      - weight:
+        - dsc: フォントの太さ
+        - value: normal
+    property:
+      - font-weight: var(--weight)
+
+
+  - item: 文字に影を付与
     id: shadow
     var:
       - text-color: currentColor
@@ -21,11 +54,12 @@ style:
     property:
       - text-shadow: 0 0 12px var(--shadow-color)
 
-  - item: golden
+  - item: テキストを金色にします
     id: golden
     var:
       - text-color: "linear-gradient(0deg, #f9f48e, #e5d051 21% 41%, #fefca8 63% 88%, #ddc847)"
     property:
+      - -webkit-text-stroke-width: 0 # 輪郭線無効化
       - background-image: var(--text-color)
       - -webkit-background-clip: text;
       - -webkit-text-fill-color: transparent;

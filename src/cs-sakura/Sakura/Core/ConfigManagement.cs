@@ -7,7 +7,12 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Haru.Kei.Core; 
-internal class ConfigManagement {
+
+internal interface IConfigManagement {
+	public void ApplyWebConfig();
+}
+
+internal class ConfigManagement : IConfigManagement {
 	private Models.Configs.ConfigWeb? webConfig;
 	private Models.Configs.ConfigRule? ruleConfig;
 

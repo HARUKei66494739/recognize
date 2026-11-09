@@ -51,8 +51,11 @@ internal class TemplateVar {
 	[YamlMember(Alias = "value")]
 	public string Value { get; set; }
 
-	[YamlMember(Alias = "unit")]
-	public string? Unit { get; set; }
+	[YamlMember(Alias = "dsc")]
+	public string Description { get; set; }
+
+	[YamlMember(Alias = "type")]
+	public string? Type { get; set; }
 }
 
 internal class TemplateStyle {

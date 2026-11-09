@@ -91,6 +91,9 @@ internal class Logger<T> where T:class, ILoggerProvider, new()  {
 	private void WriteCore(byte[] data, Stream writeStream) {
 		writeStream.Write(data);
 		writeStream.Flush();
+#if DEBUG
+		Console.WriteLine(Encoding.UTF8.GetString(data));
+#endif
 	}
 
 	private string Prefix() {
